@@ -1,0 +1,139 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   JessiFit — design system "verde energia"
+   Tokens semânticos em :root; utilitários Tailwind mapeados via @theme inline.
+--------------------------------------------------------------------------- */
+
+:root {
+  --ground: #f4f8f3;
+  --surface: #ffffff;
+  --surface-2: #eef4ec;
+  --ink: #12211a;
+  --ink-soft: #3a4a41;
+  --muted: #5c6b62;
+  --line: #dce6da;
+  --line-strong: #c6d4c2;
+  --accent: #16a34a;
+  --accent-bright: #1fb254;
+  --accent-deep: #0d7a3b;
+  --accent-wash: #e4f3e8;
+  --amber: #b8730a;
+  --amber-wash: #f8eed8;
+  --red: #c8443f;
+  --red-wash: #f7e2e0;
+  --shadow: 0 1px 2px rgb(18 33 26 / 0.04), 0 8px 28px -12px rgb(18 33 26 / 0.14);
+  --shadow-lift: 0 2px 4px rgb(18 33 26 / 0.05), 0 18px 44px -18px rgb(13 122 59 / 0.28);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ground: #0b1410;
+    --surface: #10201a;
+    --surface-2: #16271f;
+    --ink: #e9f2ea;
+    --ink-soft: #bcccc0;
+    --muted: #8ba191;
+    --line: #23362c;
+    --line-strong: #2f4738;
+    --accent: #2ec77a;
+    --accent-bright: #33d986;
+    --accent-deep: #7ee6ac;
+    --accent-wash: #143026;
+    --amber: #e6a23c;
+    --amber-wash: #2c2410;
+    --red: #e97b74;
+    --red-wash: #2e1715;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px -12px rgb(0 0 0 / 0.6);
+    --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.4), 0 20px 48px -18px rgb(0 0 0 / 0.7);
+  }
+}
+
+:root[data-theme='dark'] {
+  --ground: #0b1410;
+  --surface: #10201a;
+  --surface-2: #16271f;
+  --ink: #e9f2ea;
+  --ink-soft: #bcccc0;
+  --muted: #8ba191;
+  --line: #23362c;
+  --line-strong: #2f4738;
+  --accent: #2ec77a;
+  --accent-bright: #33d986;
+  --accent-deep: #7ee6ac;
+  --accent-wash: #143026;
+  --amber: #e6a23c;
+  --amber-wash: #2c2410;
+  --red: #e97b74;
+  --red-wash: #2e1715;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px -12px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.4), 0 20px 48px -18px rgb(0 0 0 / 0.7);
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-bright: var(--accent-bright);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-wash: var(--accent-wash);
+  --color-amber: var(--amber);
+  --color-amber-wash: var(--amber-wash);
+  --color-red: var(--red);
+  --color-red-wash: var(--red-wash);
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+    line-height: 1.1;
+  }
+  /* área segura do iPhone (notch / barra inferior) */
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 0.5rem);
+  }
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+  }
+  button {
+    font-family: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .tabnums {
+    font-variant-numeric: tabular-nums;
+  }
+}
