@@ -1,5 +1,5 @@
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { CalendarDays, Home, Upload, LogOut } from 'lucide-react'
+import { CalendarDays, Dumbbell, Home, Upload, LogOut } from 'lucide-react'
 import { useApp } from './data/store'
 import { Logo, Wordmark } from './components/ui'
 import LoginPage from './features/auth/LoginPage'
@@ -7,6 +7,7 @@ import TodayPage from './features/athlete/TodayPage'
 import WeekPage from './features/athlete/WeekPage'
 import DashboardPage from './features/coach/DashboardPage'
 import ImportPage from './features/coach/ImportPage'
+import LibraryPage from './features/coach/LibraryPage'
 import type { Role } from './types'
 
 interface Tab {
@@ -23,6 +24,7 @@ const TABS: Record<Exclude<Role, never>, Tab[]> = {
   coach: [
     { to: '/painel', label: 'Painel', icon: Home },
     { to: '/importar', label: 'Importar', icon: Upload },
+    { to: '/biblioteca', label: 'Biblioteca', icon: Dumbbell },
   ],
 }
 
@@ -104,6 +106,7 @@ export default function App() {
             <>
               <Route path="/painel" element={<DashboardPage />} />
               <Route path="/importar" element={<ImportPage />} />
+              <Route path="/biblioteca" element={<LibraryPage />} />
             </>
           )}
           <Route path="*" element={<Navigate to={home} replace />} />

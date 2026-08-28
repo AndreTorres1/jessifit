@@ -63,6 +63,18 @@ export interface ExerciseItem {
   raw: string
 }
 
+/** Exercício na biblioteca reutilizável, com demonstração opcional. */
+export interface Exercise {
+  id: string
+  name: string
+  muscleGroup: string | null
+  /** Link de vídeo (ex.: YouTube). */
+  videoUrl: string | null
+  /** Foto/GIF próprio, guardado como data URL em modo demo. */
+  imageDataUrl: string | null
+  note: string | null
+}
+
 export type WorkoutStatus = 'done' | 'failed' | 'pending'
 
 export interface WorkoutDay {

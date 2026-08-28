@@ -6,15 +6,7 @@ import type {
   Weekday,
   WorkoutDay,
 } from '@/types'
-
-/** Remove acentos e passa a minúsculas — para comparar palavras de forma tolerante. */
-function normalize(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim()
-}
+import { normalize } from '@/lib/text'
 
 /** Mapa de formas escritas → dia da semana canónico. */
 const DAY_ALIASES: Record<string, Weekday> = {

@@ -22,7 +22,7 @@ Corrida 30min
 Domingo - descanso`
 
 export default function ImportPage() {
-  const { plan, publishPlan } = useApp()
+  const { plan, publishPlan, findExercise } = useApp()
   const navigate = useNavigate()
   const [text, setText] = useState('')
 
@@ -30,6 +30,17 @@ export default function ImportPage() {
   const days = sortByWeekday(parsed.days)
   const hasContent = text.trim().length > 0
   const trainingCount = parsed.days.filter((d) => !d.rest).length
+
+  // Exercícios que ainda não existem na biblioteca (para adicionar demonstração).
+  const newExercises = useMemo(() => {
+    const names = new Set<string>()
+    for (const d of parsed.days) {
+      for (const ex of d.exercises) {
+        if (!findExercise(ex.name)) names.add(ex.name)
+      }
+    }
+    return [...names]
+  }, [parsed, findExercise])
 
   const publish = () => {
     publishPlan(parsed.days, text)
@@ -116,6 +127,11 @@ export default function ImportPage() {
                           {ex.note && (
                             <span className="text-muted"> ({ex.note})</span>
                           )}
+                          {!findExercise(ex.name) && (
+                            <span className="ml-1.5 align-middle text-[0.65rem] font-semibold uppercase tracking-wide text-amber">
+                              novo
+                            </span>
+                          )}
                         </span>
                         <span className="tabnums shrink-0 font-[var(--font-mono)] text-xs text-muted">
                           {setsRepsLabel(ex)}
@@ -129,6 +145,15 @@ export default function ImportPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {hasContent && newExercises.length > 0 && (
+        <p className="rounded-xl bg-accent-wash px-4 py-3 text-xs text-accent-deep">
+          {newExercises.length}{' '}
+          {newExercises.length === 1 ? 'exercício novo' : 'exercícios novos'} sem
+          demonstração. Depois de publicar, adiciona vídeo/foto na aba{' '}
+          <b>Biblioteca</b>.
+        </p>
       )}
 
       <Button block disabled={!hasContent || parsed.days.length === 0} onClick={publish} className="text-base">

@@ -6,8 +6,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Role, Weekday, WorkoutDay } from '@/types'
-import { demoWeek } from './mock'
+import type { Exercise, Role, Weekday, WorkoutDay } from '@/types'
+import { matchKey } from '@/lib/text'
+import { demoWeek, demoExercises } from './mock'
 
 export interface Completion {
   status: 'done' | 'failed' | 'pending'
@@ -29,6 +30,7 @@ interface AppState {
   role: Role | null
   plan: WeekPlan
   completions: Partial<Record<Weekday, Completion>>
+  exercises: Exercise[]
 }
 
 interface AppContextValue extends AppState {
@@ -36,6 +38,10 @@ interface AppContextValue extends AppState {
   publishPlan: (days: WorkoutDay[], rawText: string) => void
   mark: (day: Weekday, completion: Completion) => void
   clearMark: (day: Weekday) => void
+  /** Procura na biblioteca o exercício correspondente a um nome (por chave normalizada). */
+  findExercise: (name: string) => Exercise | undefined
+  saveExercise: (exercise: Exercise) => void
+  deleteExercise: (id: string) => void
   reset: () => void
 }
 
@@ -53,6 +59,7 @@ const initialState: AppState = {
     },
     quarta: { status: 'done', difficulty: 2, markedAt: new Date().toISOString() },
   },
+  exercises: demoExercises,
 }
 
 function load(): AppState {
@@ -106,6 +113,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
           delete next[day]
           return { ...s, completions: next }
         }),
+      findExercise: (name) => {
+        const key = matchKey(name)
+        return state.exercises.find((e) => matchKey(e.name) === key)
+      },
+      saveExercise: (exercise) =>
+        setState((s) => {
+          const exists = s.exercises.some((e) => e.id === exercise.id)
+          return {
+            ...s,
+            exercises: exists
+              ? s.exercises.map((e) => (e.id === exercise.id ? exercise : e))
+              : [...s.exercises, exercise],
+          }
+        }),
+      deleteExercise: (id) =>
+        setState((s) => ({
+          ...s,
+          exercises: s.exercises.filter((e) => e.id !== id),
+        })),
       reset: () => setState(initialState),
     }),
     [state],

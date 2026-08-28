@@ -1,20 +1,27 @@
 import { useState } from 'react'
-import { PlayCircle, ExternalLink, X } from 'lucide-react'
-import type { ExerciseItem } from '@/types'
+import { PlayCircle, ExternalLink, X, Info } from 'lucide-react'
+import type { Exercise, ExerciseItem } from '@/types'
 import { setsRepsLabel } from '@/engine/parseWorkouts'
+import { youtubeId, demoSearchUrl } from '@/lib/text'
+import { useApp } from '@/data/store'
 
-/** Link de pesquisa de demonstração — placeholder até haver biblioteca com media. */
-function demoSearchUrl(name: string): string {
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(
-    'como fazer ' + name + ' exercício',
-  )}`
-}
+function DemoSheet({
+  name,
+  exercise,
+  onClose,
+}: {
+  name: string
+  exercise: Exercise | undefined
+  onClose: () => void
+}) {
+  const ytId = exercise?.videoUrl ? youtubeId(exercise.videoUrl) : null
 
-function DemoSheet({ name, onClose }: { name: string; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div
         className="safe-bottom w-full max-w-md rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl"
@@ -22,7 +29,12 @@ function DemoSheet({ name, onClose }: { name: string; onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-[var(--font-display)] text-lg font-bold">{name}</h3>
+          <div>
+            <h3 className="font-[var(--font-display)] text-lg font-bold">{name}</h3>
+            {exercise?.muscleGroup && (
+              <p className="text-xs text-muted">{exercise.muscleGroup}</p>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface-2"
@@ -31,35 +43,70 @@ function DemoSheet({ name, onClose }: { name: string; onClose: () => void }) {
             <X size={18} />
           </button>
         </div>
-        <div className="grid aspect-video place-items-center rounded-2xl bg-surface-2 text-muted">
-          <PlayCircle size={44} strokeWidth={1.4} />
-        </div>
-        <p className="mt-3 text-sm text-muted">
-          Ainda sem vídeo próprio para este exercício. Entretanto, vê exemplos:
-        </p>
-        <a
-          href={demoSearchUrl(name)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent-wash px-4 py-3 text-sm font-semibold text-accent-deep"
-        >
-          <ExternalLink size={16} /> Procurar no YouTube
-        </a>
+
+        {ytId ? (
+          <div className="aspect-video overflow-hidden rounded-2xl bg-black">
+            <iframe
+              className="h-full w-full"
+              src={`https://www.youtube-nocookie.com/embed/${ytId}`}
+              title={`Demonstração — ${name}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : exercise?.imageDataUrl ? (
+          <img
+            src={exercise.imageDataUrl}
+            alt={`Demonstração — ${name}`}
+            className="w-full rounded-2xl"
+          />
+        ) : (
+          <div className="grid aspect-video place-items-center rounded-2xl bg-surface-2 text-muted">
+            <PlayCircle size={44} strokeWidth={1.4} />
+          </div>
+        )}
+
+        {exercise?.note && (
+          <p className="mt-3 flex items-start gap-2 rounded-xl bg-accent-wash px-3 py-2.5 text-sm text-accent-deep">
+            <Info size={16} className="mt-0.5 shrink-0" /> {exercise.note}
+          </p>
+        )}
+
+        {!ytId && !exercise?.imageDataUrl && (
+          <>
+            <p className="mt-3 text-sm text-muted">
+              Ainda sem demonstração própria. Entretanto, vê exemplos:
+            </p>
+            <a
+              href={demoSearchUrl(name)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent-wash px-4 py-3 text-sm font-semibold text-accent-deep"
+            >
+              <ExternalLink size={16} /> Procurar no YouTube
+            </a>
+          </>
+        )}
       </div>
     </div>
   )
 }
 
 export function ExerciseRow({ item }: { item: ExerciseItem }) {
+  const { findExercise } = useApp()
   const [open, setOpen] = useState(false)
+  const exercise = findExercise(item.name)
+  const hasDemo = Boolean(exercise?.videoUrl || exercise?.imageDataUrl)
   const sr = setsRepsLabel(item)
+
   return (
     <>
       <div className="flex items-center gap-3 py-2.5">
         <button
           onClick={() => setOpen(true)}
-          className="text-accent transition hover:text-accent-deep"
+          className={hasDemo ? 'text-accent transition hover:text-accent-deep' : 'text-muted'}
           aria-label={`Ver como fazer ${item.name}`}
+          title={hasDemo ? 'Ver demonstração' : 'Procurar demonstração'}
         >
           <PlayCircle size={20} />
         </button>
@@ -78,7 +125,9 @@ export function ExerciseRow({ item }: { item: ExerciseItem }) {
           )}
         </div>
       </div>
-      {open && <DemoSheet name={item.name} onClose={() => setOpen(false)} />}
+      {open && (
+        <DemoSheet name={item.name} exercise={exercise} onClose={() => setOpen(false)} />
+      )}
     </>
   )
 }
