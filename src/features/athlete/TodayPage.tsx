@@ -4,8 +4,9 @@ import { useApp, type Completion } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
 import { todayWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
+import { ProgressRing } from '@/components/ProgressRing'
 import { ExerciseList } from '../shared/ExerciseList'
-import { countDone } from '../shared/stats'
+import { countDone, weekProgress } from '../shared/stats'
 
 function DifficultyPicker({
   value,
@@ -155,19 +156,23 @@ export default function TodayPage() {
   const today = todayWeekday()
   const day = plan.days.find((d) => d.day === today)
   const streak = countDone(completions)
+  const { done, total } = weekProgress(plan.days, completions)
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <Eyebrow>Semana {plan.weekNumber}</Eyebrow>
           <h1 className="text-2xl font-extrabold">{WEEKDAY_LABEL[today]}</h1>
+          {streak > 0 && (
+            <div className="mt-1.5">
+              <Pill>
+                <Flame size={13} /> {streak} {streak === 1 ? 'treino' : 'treinos'}
+              </Pill>
+            </div>
+          )}
         </div>
-        {streak > 0 && (
-          <Pill>
-            <Flame size={13} /> {streak} {streak === 1 ? 'treino' : 'treinos'}
-          </Pill>
-        )}
+        <ProgressRing value={done} total={total} label="semana" />
       </div>
 
       {!day && (
@@ -195,7 +200,10 @@ export default function TodayPage() {
               <h2 className="font-[var(--font-display)] text-lg font-bold">
                 {day.title ?? 'Treino de hoje'}
               </h2>
-              <Pill tone="muted">{day.exercises.length} exercícios</Pill>
+              <Pill tone="muted">
+                {day.exercises.length}{' '}
+                {day.exercises.length === 1 ? 'exercício' : 'exercícios'}
+              </Pill>
             </div>
             <ExerciseList items={day.exercises} />
           </Card>

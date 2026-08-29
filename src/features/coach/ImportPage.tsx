@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, Coffee, Check, Sparkles } from 'lucide-react'
+import { AlertTriangle, Coffee, Check, Sparkles, Copy } from 'lucide-react'
 import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
 import { parseWorkouts, setsRepsLabel } from '@/engine/parseWorkouts'
@@ -67,12 +67,22 @@ export default function ImportPage() {
           style={{ boxShadow: 'var(--shadow)' }}
         />
         {!hasContent && (
-          <button
-            onClick={() => setText(PLACEHOLDER)}
-            className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-lg bg-accent-wash px-2.5 py-1.5 text-xs font-semibold text-accent-deep"
-          >
-            <Sparkles size={13} /> Usar exemplo
-          </button>
+          <div className="absolute bottom-3 right-3 flex gap-2">
+            {plan.rawText && (
+              <button
+                onClick={() => setText(plan.rawText!)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-surface-2 px-2.5 py-1.5 text-xs font-semibold text-ink-soft"
+              >
+                <Copy size={13} /> Copiar última semana
+              </button>
+            )}
+            <button
+              onClick={() => setText(PLACEHOLDER)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent-wash px-2.5 py-1.5 text-xs font-semibold text-accent-deep"
+            >
+              <Sparkles size={13} /> Usar exemplo
+            </button>
+          </div>
         )}
       </div>
 

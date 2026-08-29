@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { Exercise, Role, Weekday, WorkoutDay } from '@/types'
 import { matchKey } from '@/lib/text'
+import { loadJSON, saveJSON } from '@/lib/storage'
 import { demoWeek, demoExercises } from './mock'
 
 export interface Completion {
@@ -63,15 +64,10 @@ const initialState: AppState = {
 }
 
 function load(): AppState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return initialState
-    const parsed = JSON.parse(raw) as AppState
-    // o papel não é persistido entre sessões — pede sempre no arranque
-    return { ...initialState, ...parsed, role: null }
-  } catch {
-    return initialState
-  }
+  const parsed = loadJSON<AppState | null>(STORAGE_KEY, null)
+  if (!parsed) return initialState
+  // o papel não é persistido entre sessões — pede sempre no arranque
+  return { ...initialState, ...parsed, role: null }
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -80,11 +76,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => load())
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    } catch {
-      /* ignora quota/privado */
-    }
+    saveJSON(STORAGE_KEY, state)
   }, [state])
 
   const value = useMemo<AppContextValue>(

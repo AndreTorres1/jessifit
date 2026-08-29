@@ -2,13 +2,13 @@ import { Coffee, Check, X } from 'lucide-react'
 import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
 import { sortByWeekday, todayWeekday } from '@/lib/format'
-import { Card, Pill, Eyebrow } from '@/components/ui'
+import { Card, Pill, Eyebrow, Button } from '@/components/ui'
 import { WeekGrid } from '../shared/WeekGrid'
 import { ExerciseList } from '../shared/ExerciseList'
 import { weekProgress } from '../shared/stats'
 
 export default function WeekPage() {
-  const { plan, completions } = useApp()
+  const { plan, completions, mark, clearMark } = useApp()
   const today = todayWeekday()
   const { done, total } = weekProgress(plan.days, completions)
   const days = sortByWeekday(plan.days)
@@ -69,6 +69,48 @@ export default function WeekPage() {
               )}
               {c?.status === 'failed' && c.failReason && (
                 <p className="mt-2 text-xs italic text-muted">“{c.failReason}”</p>
+              )}
+
+              {!d.rest && d.exercises.length > 0 && (
+                <div className="mt-3 flex gap-2">
+                  {c ? (
+                    <Button
+                      variant="ghost"
+                      className="text-xs"
+                      onClick={() => clearMark(d.day)}
+                    >
+                      Anular marcação
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="soft"
+                        className="flex-1 text-xs"
+                        onClick={() =>
+                          mark(d.day, {
+                            status: 'done',
+                            difficulty: 3,
+                            markedAt: new Date().toISOString(),
+                          })
+                        }
+                      >
+                        <Check size={15} /> Feito
+                      </Button>
+                      <Button
+                        variant="danger"
+                        className="flex-1 text-xs"
+                        onClick={() =>
+                          mark(d.day, {
+                            status: 'failed',
+                            markedAt: new Date().toISOString(),
+                          })
+                        }
+                      >
+                        <X size={15} /> Falhei
+                      </Button>
+                    </>
+                  )}
+                </div>
               )}
             </Card>
           )

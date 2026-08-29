@@ -4,6 +4,7 @@ import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL, type Weekday } from '@/types'
 import { sortByWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
+import { ProgressRing } from '@/components/ProgressRing'
 import { WeekGrid } from '../shared/WeekGrid'
 import { weekProgress, countDone } from '../shared/stats'
 
@@ -25,12 +26,9 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Card className="flex flex-col items-center justify-center py-5 text-center">
-          <p className="tabnums font-[var(--font-display)] text-4xl font-extrabold text-accent-deep">
-            {done}
-            <span className="text-2xl text-muted">/{total}</span>
-          </p>
-          <p className="mt-1 text-xs text-muted">treinos esta semana</p>
+        <Card className="flex flex-col items-center justify-center gap-2 py-5 text-center">
+          <ProgressRing value={done} total={total} size={84} />
+          <p className="text-xs text-muted">treinos esta semana</p>
         </Card>
         <Card className="flex flex-col items-center justify-center py-5 text-center">
           <p className="tabnums flex items-center gap-1 font-[var(--font-display)] text-4xl font-extrabold text-accent-deep">

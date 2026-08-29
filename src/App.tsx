@@ -1,14 +1,18 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { CalendarDays, Dumbbell, Home, Upload, LogOut } from 'lucide-react'
+import { CalendarDays, Dumbbell, Home, Upload, LogOut, Loader2 } from 'lucide-react'
 import { useApp } from './data/store'
 import { Logo, Wordmark } from './components/ui'
-import LoginPage from './features/auth/LoginPage'
-import TodayPage from './features/athlete/TodayPage'
-import WeekPage from './features/athlete/WeekPage'
-import DashboardPage from './features/coach/DashboardPage'
-import ImportPage from './features/coach/ImportPage'
-import LibraryPage from './features/coach/LibraryPage'
+import { InstallHint } from './components/InstallHint'
 import type { Role } from './types'
+
+// Code-splitting por rota: cada vista carrega só quando é necessária.
+const LoginPage = lazy(() => import('./features/auth/LoginPage'))
+const TodayPage = lazy(() => import('./features/athlete/TodayPage'))
+const WeekPage = lazy(() => import('./features/athlete/WeekPage'))
+const DashboardPage = lazy(() => import('./features/coach/DashboardPage'))
+const ImportPage = lazy(() => import('./features/coach/ImportPage'))
+const LibraryPage = lazy(() => import('./features/coach/LibraryPage'))
 
 interface Tab {
   to: string
@@ -26,6 +30,14 @@ const TABS: Record<Exclude<Role, never>, Tab[]> = {
     { to: '/importar', label: 'Importar', icon: Upload },
     { to: '/biblioteca', label: 'Biblioteca', icon: Dumbbell },
   ],
+}
+
+function Fallback() {
+  return (
+    <div className="grid place-items-center py-20 text-muted">
+      <Loader2 className="animate-spin motion-reduce:animate-none" size={28} />
+    </div>
+  )
 }
 
 function TopBar() {
@@ -84,9 +96,11 @@ export default function App() {
 
   if (!role) {
     return (
-      <Routes>
-        <Route path="*" element={<LoginPage />} />
-      </Routes>
+      <Suspense fallback={<Fallback />}>
+        <Routes>
+          <Route path="*" element={<LoginPage />} />
+        </Routes>
+      </Suspense>
     )
   }
 
@@ -96,21 +110,24 @@ export default function App() {
     <div className="flex min-h-[100dvh] flex-col">
       <TopBar />
       <main className="mx-auto w-full max-w-md flex-1 px-4 py-5">
-        <Routes location={location}>
-          {role === 'athlete' ? (
-            <>
-              <Route path="/hoje" element={<TodayPage />} />
-              <Route path="/semana" element={<WeekPage />} />
-            </>
-          ) : (
-            <>
-              <Route path="/painel" element={<DashboardPage />} />
-              <Route path="/importar" element={<ImportPage />} />
-              <Route path="/biblioteca" element={<LibraryPage />} />
-            </>
-          )}
-          <Route path="*" element={<Navigate to={home} replace />} />
-        </Routes>
+        <InstallHint />
+        <Suspense fallback={<Fallback />}>
+          <Routes location={location}>
+            {role === 'athlete' ? (
+              <>
+                <Route path="/hoje" element={<TodayPage />} />
+                <Route path="/semana" element={<WeekPage />} />
+              </>
+            ) : (
+              <>
+                <Route path="/painel" element={<DashboardPage />} />
+                <Route path="/importar" element={<ImportPage />} />
+                <Route path="/biblioteca" element={<LibraryPage />} />
+              </>
+            )}
+            <Route path="*" element={<Navigate to={home} replace />} />
+          </Routes>
+        </Suspense>
       </main>
       <TabBar role={role} />
     </div>
