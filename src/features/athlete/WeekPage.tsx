@@ -5,10 +5,11 @@ import { sortByWeekday, todayWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button } from '@/components/ui'
 import { WeekGrid } from '../shared/WeekGrid'
 import { ExerciseList } from '../shared/ExerciseList'
+import { HistoryList } from '../shared/HistoryList'
 import { weekProgress } from '../shared/stats'
 
 export default function WeekPage() {
-  const { plan, completions, mark, clearMark } = useApp()
+  const { plan, completions, mark, clearMark, history } = useApp()
   const today = todayWeekday()
   const { done, total } = weekProgress(plan.days, completions)
   const days = sortByWeekday(plan.days)
@@ -116,6 +117,15 @@ export default function WeekPage() {
           )
         })}
       </div>
+
+      {history.length > 0 && (
+        <div>
+          <h2 className="mb-2 mt-2 text-sm font-semibold text-muted">
+            Semanas anteriores
+          </h2>
+          <HistoryList history={history} />
+        </div>
+      )}
     </div>
   )
 }

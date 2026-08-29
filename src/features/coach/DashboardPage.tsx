@@ -6,10 +6,11 @@ import { sortByWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { ProgressRing } from '@/components/ProgressRing'
 import { WeekGrid } from '../shared/WeekGrid'
+import { HistoryList } from '../shared/HistoryList'
 import { weekProgress, countDone } from '../shared/stats'
 
 export default function DashboardPage() {
-  const { plan, completions } = useApp()
+  const { plan, completions, history } = useApp()
   const navigate = useNavigate()
   const { done, total } = weekProgress(plan.days, completions)
   const streak = countDone(completions)
@@ -70,6 +71,13 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {history.length > 0 && (
+        <div>
+          <p className="mb-2 text-sm font-semibold">Semanas anteriores</p>
+          <HistoryList history={history} />
+        </div>
+      )}
 
       <Button block onClick={() => navigate('/importar')} className="text-base">
         <Plus size={18} /> Criar próxima semana

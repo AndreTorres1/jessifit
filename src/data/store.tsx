@@ -27,11 +27,20 @@ export interface WeekPlan {
   rawText?: string
 }
 
+/** Resumo de uma semana arquivada, para o histórico. */
+export interface WeekSummary {
+  weekNumber: number
+  done: number
+  total: number
+  endedAt: string // ISO
+}
+
 interface AppState {
   role: Role | null
   plan: WeekPlan
   completions: Partial<Record<Weekday, Completion>>
   exercises: Exercise[]
+  history: WeekSummary[]
 }
 
 interface AppContextValue extends AppState {
@@ -61,6 +70,22 @@ const initialState: AppState = {
     quarta: { status: 'done', difficulty: 2, markedAt: new Date().toISOString() },
   },
   exercises: demoExercises,
+  history: [
+    { weekNumber: 2, done: 3, total: 3, endedAt: '2026-08-17T00:00:00.000Z' },
+    { weekNumber: 1, done: 2, total: 3, endedAt: '2026-08-10T00:00:00.000Z' },
+  ],
+}
+
+/** Resumo do progresso da semana atual, a partir do plano e das marcações. */
+function summarizeWeek(state: AppState): WeekSummary {
+  const training = state.plan.days.filter((d) => !d.rest && d.exercises.length > 0)
+  const done = training.filter((d) => state.completions[d.day]?.status === 'done').length
+  return {
+    weekNumber: state.plan.weekNumber,
+    done,
+    total: training.length,
+    endedAt: new Date().toISOString(),
+  }
 }
 
 function load(): AppState {
@@ -86,6 +111,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       publishPlan: (days, rawText) =>
         setState((s) => ({
           ...s,
+          // arquiva a semana atual antes de a substituir
+          history: [summarizeWeek(s), ...s.history].slice(0, 24),
           plan: {
             ...s.plan,
             weekNumber: s.plan.weekNumber + 1,

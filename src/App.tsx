@@ -4,6 +4,7 @@ import { CalendarDays, Dumbbell, Home, Upload, LogOut, Loader2 } from 'lucide-re
 import { useApp } from './data/store'
 import { Logo, Wordmark } from './components/ui'
 import { InstallHint } from './components/InstallHint'
+import { ThemeToggle } from './components/ThemeToggle'
 import type { Role } from './types'
 
 // Code-splitting por rota: cada vista carrega só quando é necessária.
@@ -47,10 +48,11 @@ function TopBar() {
       <div className="mx-auto flex max-w-md items-center gap-2.5 px-4 py-2.5">
         <Logo size={30} />
         <Wordmark className="text-base" />
-        <span className="ml-auto flex items-center gap-2 text-xs text-muted">
-          <span className="font-[var(--font-mono)]">
+        <span className="ml-auto flex items-center gap-1 text-xs text-muted">
+          <span className="mr-1 font-[var(--font-mono)]">
             {role === 'athlete' ? plan.athleteName : 'Treinador'}
           </span>
+          <ThemeToggle />
           <button
             onClick={() => setRole(null)}
             className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface-2"
