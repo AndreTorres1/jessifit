@@ -24,6 +24,23 @@ export function weekProgress(
   return { done, total: training.length }
 }
 
+/**
+ * Número de semanas perfeitas (todos os treinos feitos) seguidas, a contar da
+ * mais recente. Inclui a semana atual apenas se já estiver completa.
+ */
+export function perfectWeekStreak(
+  current: { done: number; total: number },
+  history: { done: number; total: number }[],
+): number {
+  const weeks = [current, ...history]
+  let streak = 0
+  for (const w of weeks) {
+    if (w.total > 0 && w.done === w.total) streak++
+    else break
+  }
+  return streak
+}
+
 /** Estado de cada dia da semana para a grelha (feito/falhado/descanso/pendente/vazio). */
 export type DayCellState = 'done' | 'failed' | 'rest' | 'pending' | 'empty'
 

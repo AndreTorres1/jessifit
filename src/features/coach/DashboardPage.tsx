@@ -1,19 +1,29 @@
 import { useNavigate } from 'react-router-dom'
-import { Flame, MessageSquareQuote, Plus, Pencil } from 'lucide-react'
+import { Flame, MessageSquareQuote, Plus, Pencil, Share2 } from 'lucide-react'
 import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL, type Weekday } from '@/types'
 import { sortByWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { ProgressRing } from '@/components/ProgressRing'
+import { useToast } from '@/components/Toast'
+import { buildWeekMessage, shareText } from '@/lib/share'
 import { WeekGrid } from '../shared/WeekGrid'
 import { HistoryList } from '../shared/HistoryList'
-import { weekProgress, countDone } from '../shared/stats'
+import { weekProgress, perfectWeekStreak } from '../shared/stats'
 
 export default function DashboardPage() {
   const { plan, completions, history } = useApp()
+  const { show } = useToast()
   const navigate = useNavigate()
   const { done, total } = weekProgress(plan.days, completions)
-  const streak = countDone(completions)
+  const streak = perfectWeekStreak({ done, total }, history)
+
+  const share = async () => {
+    const msg = buildWeekMessage(plan.athleteName, plan.weekNumber, plan.days)
+    const r = await shareText(msg)
+    if (r === 'copied') show('Plano copiado para a área de transferência')
+    else if (r === 'whatsapp') show('A abrir o WhatsApp…')
+  }
 
   const feedback = sortByWeekday(plan.days)
     .map((d) => ({ day: d.day as Weekday, c: completions[d.day] }))
@@ -35,7 +45,9 @@ export default function DashboardPage() {
           <p className="tabnums flex items-center gap-1 font-[var(--font-display)] text-4xl font-extrabold text-accent-deep">
             <Flame size={26} /> {streak}
           </p>
-          <p className="mt-1 text-xs text-muted">dias em dia</p>
+          <p className="mt-1 text-xs text-muted">
+            {streak === 1 ? 'semana perfeita' : 'semanas seguidas'}
+          </p>
         </Card>
       </div>
 
@@ -84,13 +96,18 @@ export default function DashboardPage() {
           <Plus size={18} /> Criar próxima semana
         </Button>
         {plan.rawText && (
-          <Button
-            variant="ghost"
-            block
-            onClick={() => navigate('/importar', { state: { edit: true } })}
-          >
-            <Pencil size={16} /> Editar semana atual
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              block
+              onClick={() => navigate('/importar', { state: { edit: true } })}
+            >
+              <Pencil size={16} /> Editar
+            </Button>
+            <Button variant="soft" block onClick={share}>
+              <Share2 size={16} /> Partilhar
+            </Button>
+          </div>
         )}
       </div>
     </div>

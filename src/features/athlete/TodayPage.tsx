@@ -5,6 +5,7 @@ import { WEEKDAY_LABEL } from '@/types'
 import { todayWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { ProgressRing } from '@/components/ProgressRing'
+import { RestTimer } from '@/components/RestTimer'
 import { useToast } from '@/components/Toast'
 import { haptic } from '@/lib/haptics'
 import { ExerciseList } from '../shared/ExerciseList'
@@ -225,6 +226,7 @@ export default function TodayPage() {
             <ExerciseList items={day.exercises} />
           </Card>
           <CompletionControls day={today} />
+          <RestTimer />
         </>
       )}
     </div>
