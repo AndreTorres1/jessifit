@@ -8,11 +8,30 @@ texto e a app estrutura-os; a **atleta** vê o plano da semana, marca o que fez
 
 ## Estado
 
-**Fase 1 — fundação (concluída):** PWA instalável, design system, motor de
-importação por texto (parser + testes), e as vistas principais a funcionar em
-**modo demonstração** (dados de exemplo em `localStorage`, sem backend).
+Funciona em **modo demonstração** (dados de exemplo em `localStorage`, sem
+backend). Falta apenas ligar o Supabase (auth + base de dados) para dados reais.
 
-**A seguir:** ligar o Supabase (auth + base de dados) para dados reais.
+### Funcionalidades
+
+**Atleta**
+- Vista "Hoje" com treino do dia, anel de progresso da semana e streak
+- Marcar treino como concluído (com dificuldade e nota) ou como falhado (com motivo)
+- Check-off por exercício durante o treino + cronómetro de descanso
+- Demonstração de cada exercício (vídeo/foto) ligada por nome
+- Semana inteira visível + histórico de semanas anteriores
+- Celebração (confetti) ao completar a semana
+
+**Treinador**
+- Importação do plano por texto, com pré-visualização e avisos
+- Editar a semana atual ou criar a próxima
+- Painel de progresso: cumprimento, streak de semanas, feedback da atleta
+- Biblioteca de exercícios (vídeo/foto) com pesquisa e filtro por grupo muscular
+- Partilhar o plano por WhatsApp / Web Share
+
+**Transversal**
+- PWA instalável (iOS/Android) com aviso de nova versão
+- Tema claro/escuro/automático, toasts, transições, onboarding
+- Acessibilidade (Escape fecha modais, foco visível, reduced-motion)
 
 ## Stack
 

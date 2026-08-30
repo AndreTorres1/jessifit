@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlayCircle, ExternalLink, X, Info } from 'lucide-react'
+import { PlayCircle, ExternalLink, X, Info, Check } from 'lucide-react'
 import type { Exercise, ExerciseItem } from '@/types'
 import { setsRepsLabel } from '@/engine/parseWorkouts'
 import { youtubeId, demoSearchUrl } from '@/lib/text'
@@ -94,7 +94,15 @@ function DemoSheet({
   )
 }
 
-export function ExerciseRow({ item }: { item: ExerciseItem }) {
+export function ExerciseRow({
+  item,
+  checked,
+  onToggle,
+}: {
+  item: ExerciseItem
+  checked?: boolean
+  onToggle?: () => void
+}) {
   const { findExercise } = useApp()
   const [open, setOpen] = useState(false)
   const exercise = findExercise(item.name)
@@ -104,6 +112,21 @@ export function ExerciseRow({ item }: { item: ExerciseItem }) {
   return (
     <>
       <div className="flex items-center gap-3 py-2.5">
+        {onToggle && (
+          <button
+            onClick={onToggle}
+            aria-label={checked ? `Desmarcar ${item.name}` : `Marcar ${item.name} como feito`}
+            aria-pressed={checked}
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-full border transition"
+            style={{
+              background: checked ? 'var(--accent)' : 'transparent',
+              borderColor: checked ? 'var(--accent)' : 'var(--line-strong)',
+              color: '#fff',
+            }}
+          >
+            {checked && <Check size={14} />}
+          </button>
+        )}
         <button
           onClick={() => setOpen(true)}
           className={hasDemo ? 'text-accent transition hover:text-accent-deep' : 'text-muted'}
@@ -113,7 +136,13 @@ export function ExerciseRow({ item }: { item: ExerciseItem }) {
           <PlayCircle size={20} />
         </button>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{item.name}</p>
+          <p
+            className={`truncate text-sm font-medium ${
+              checked ? 'text-muted line-through' : ''
+            }`}
+          >
+            {item.name}
+          </p>
           {item.note && <p className="truncate text-xs text-muted">{item.note}</p>}
         </div>
         <div className="text-right">
@@ -134,11 +163,24 @@ export function ExerciseRow({ item }: { item: ExerciseItem }) {
   )
 }
 
-export function ExerciseList({ items }: { items: ExerciseItem[] }) {
+export function ExerciseList({
+  items,
+  checked,
+  onToggle,
+}: {
+  items: ExerciseItem[]
+  checked?: Set<number>
+  onToggle?: (index: number) => void
+}) {
   return (
     <div className="divide-y divide-line">
       {items.map((it, i) => (
-        <ExerciseRow key={i} item={it} />
+        <ExerciseRow
+          key={i}
+          item={it}
+          checked={checked?.has(i)}
+          onToggle={onToggle ? () => onToggle(i) : undefined}
+        />
       ))}
     </div>
   )

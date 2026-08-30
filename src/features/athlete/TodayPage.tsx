@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Flame, Check, X, Coffee, CalendarX } from 'lucide-react'
 import { useApp, type Completion } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
@@ -6,6 +6,7 @@ import { todayWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { ProgressRing } from '@/components/ProgressRing'
 import { RestTimer } from '@/components/RestTimer'
+import { Confetti } from '@/components/Confetti'
 import { useToast } from '@/components/Toast'
 import { haptic } from '@/lib/haptics'
 import { ExerciseList } from '../shared/ExerciseList'
@@ -163,6 +164,33 @@ export default function TodayPage() {
   const day = plan.days.find((d) => d.day === today)
   const streak = countDone(completions)
   const { done, total } = weekProgress(plan.days, completions)
+  const weekComplete = total > 0 && done === total
+
+  // check-off por exercício durante o treino (apenas ajuda visual, não persiste)
+  const [checkedEx, setCheckedEx] = useState<Set<number>>(new Set())
+  useEffect(() => setCheckedEx(new Set()), [today])
+  const toggleEx = (i: number) =>
+    setCheckedEx((s) => {
+      const n = new Set(s)
+      n.has(i) ? n.delete(i) : n.add(i)
+      return n
+    })
+
+  // dispara confetti uma vez por semana em cada sessão
+  const [confetti, setConfetti] = useState(false)
+  useEffect(() => {
+    if (!weekComplete) return
+    const key = `jessifit:celebrated:${plan.weekNumber}`
+    try {
+      if (sessionStorage.getItem(key)) return
+      sessionStorage.setItem(key, '1')
+    } catch {
+      /* ignora */
+    }
+    setConfetti(true)
+    const t = setTimeout(() => setConfetti(false), 1800)
+    return () => clearTimeout(t)
+  }, [weekComplete, plan.weekNumber])
 
   return (
     <div className="flex flex-col gap-4">
@@ -181,8 +209,9 @@ export default function TodayPage() {
         <ProgressRing value={done} total={total} label="semana" />
       </div>
 
-      {total > 0 && done === total && (
-        <Card className="flex items-center gap-3 border-accent/50">
+      {weekComplete && (
+        <Card className="relative flex items-center gap-3 overflow-hidden border-accent/50">
+          {confetti && <Confetti />}
           <div className="text-2xl">🎉</div>
           <div>
             <p className="font-[var(--font-display)] font-bold">Semana completa!</p>
@@ -218,12 +247,13 @@ export default function TodayPage() {
               <h2 className="font-[var(--font-display)] text-lg font-bold">
                 {day.title ?? 'Treino de hoje'}
               </h2>
-              <Pill tone="muted">
-                {day.exercises.length}{' '}
-                {day.exercises.length === 1 ? 'exercício' : 'exercícios'}
+              <Pill tone={checkedEx.size > 0 ? 'accent' : 'muted'}>
+                {checkedEx.size > 0
+                  ? `${checkedEx.size}/${day.exercises.length} ✓`
+                  : `${day.exercises.length} ${day.exercises.length === 1 ? 'exercício' : 'exercícios'}`}
               </Pill>
             </div>
-            <ExerciseList items={day.exercises} />
+            <ExerciseList items={day.exercises} checked={checkedEx} onToggle={toggleEx} />
           </Card>
           <CompletionControls day={today} />
           <RestTimer />
