@@ -6,6 +6,7 @@ import { WEEKDAY_LABEL } from '@/types'
 import { parseWorkouts, setsRepsLabel } from '@/engine/parseWorkouts'
 import { sortByWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button } from '@/components/ui'
+import { useToast } from '@/components/Toast'
 
 const PLACEHOLDER = `Segunda - Pernas
 Agachamento 4x8 60kg
@@ -23,6 +24,7 @@ Domingo - descanso`
 
 export default function ImportPage() {
   const { plan, publishPlan, findExercise } = useApp()
+  const { show } = useToast()
   const navigate = useNavigate()
   const [text, setText] = useState('')
 
@@ -44,6 +46,7 @@ export default function ImportPage() {
 
   const publish = () => {
     publishPlan(parsed.days, text)
+    show(`Semana publicada para a ${plan.athleteName}`)
     navigate('/painel')
   }
 

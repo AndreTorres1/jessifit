@@ -12,6 +12,8 @@ import { useApp } from '@/data/store'
 import type { Exercise } from '@/types'
 import { youtubeId } from '@/lib/text'
 import { fileToScaledDataUrl } from '@/lib/image'
+import { useEscapeKey } from '@/lib/hooks'
+import { useToast } from '@/components/Toast'
 import { Card, Button, Eyebrow, EmptyState, Pill } from '@/components/ui'
 
 function newExercise(): Exercise {
@@ -33,10 +35,12 @@ function Editor({
   onClose: () => void
 }) {
   const { saveExercise } = useApp()
+  const { show } = useToast()
   const [ex, setEx] = useState<Exercise>(initial)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  useEscapeKey(onClose)
 
   const set = <K extends keyof Exercise>(k: K, v: Exercise[K]) =>
     setEx((e) => ({ ...e, [k]: v }))
@@ -174,6 +178,7 @@ function Editor({
             disabled={!canSave}
             onClick={() => {
               saveExercise({ ...ex, name: ex.name.trim() })
+              show('Exercício guardado')
               onClose()
             }}
           >

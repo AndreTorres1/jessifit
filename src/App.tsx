@@ -1,10 +1,19 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { CalendarDays, Dumbbell, Home, Upload, LogOut, Loader2 } from 'lucide-react'
+import {
+  CalendarDays,
+  Dumbbell,
+  Home,
+  Upload,
+  LogOut,
+  Loader2,
+  Settings,
+} from 'lucide-react'
 import { useApp } from './data/store'
 import { Logo, Wordmark } from './components/ui'
 import { InstallHint } from './components/InstallHint'
 import { ThemeToggle } from './components/ThemeToggle'
+import { SettingsModal } from './components/SettingsModal'
 import type { Role } from './types'
 
 // Code-splitting por rota: cada vista carrega só quando é necessária.
@@ -43,6 +52,7 @@ function Fallback() {
 
 function TopBar() {
   const { role, setRole, plan } = useApp()
+  const [settingsOpen, setSettingsOpen] = useState(false)
   return (
     <header className="safe-top sticky top-0 z-10 border-b border-line bg-ground/85 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center gap-2.5 px-4 py-2.5">
@@ -53,6 +63,15 @@ function TopBar() {
             {role === 'athlete' ? plan.athleteName : 'Treinador'}
           </span>
           <ThemeToggle />
+          {role === 'coach' && (
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface-2"
+              aria-label="Definições"
+            >
+              <Settings size={16} />
+            </button>
+          )}
           <button
             onClick={() => setRole(null)}
             className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface-2"
@@ -62,6 +81,7 @@ function TopBar() {
           </button>
         </span>
       </div>
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </header>
   )
 }
@@ -113,23 +133,25 @@ export default function App() {
       <TopBar />
       <main className="mx-auto w-full max-w-md flex-1 px-4 py-5">
         <InstallHint />
-        <Suspense fallback={<Fallback />}>
-          <Routes location={location}>
-            {role === 'athlete' ? (
-              <>
-                <Route path="/hoje" element={<TodayPage />} />
-                <Route path="/semana" element={<WeekPage />} />
-              </>
-            ) : (
-              <>
-                <Route path="/painel" element={<DashboardPage />} />
-                <Route path="/importar" element={<ImportPage />} />
-                <Route path="/biblioteca" element={<LibraryPage />} />
-              </>
-            )}
-            <Route path="*" element={<Navigate to={home} replace />} />
-          </Routes>
-        </Suspense>
+        <div key={location.pathname} className="page-enter">
+          <Suspense fallback={<Fallback />}>
+            <Routes location={location}>
+              {role === 'athlete' ? (
+                <>
+                  <Route path="/hoje" element={<TodayPage />} />
+                  <Route path="/semana" element={<WeekPage />} />
+                </>
+              ) : (
+                <>
+                  <Route path="/painel" element={<DashboardPage />} />
+                  <Route path="/importar" element={<ImportPage />} />
+                  <Route path="/biblioteca" element={<LibraryPage />} />
+                </>
+              )}
+              <Route path="*" element={<Navigate to={home} replace />} />
+            </Routes>
+          </Suspense>
+        </div>
       </main>
       <TabBar role={role} />
     </div>

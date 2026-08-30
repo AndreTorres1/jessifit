@@ -4,6 +4,7 @@ import type { Exercise, ExerciseItem } from '@/types'
 import { setsRepsLabel } from '@/engine/parseWorkouts'
 import { youtubeId, demoSearchUrl } from '@/lib/text'
 import { useApp } from '@/data/store'
+import { useEscapeKey } from '@/lib/hooks'
 
 function DemoSheet({
   name,
@@ -15,6 +16,7 @@ function DemoSheet({
   onClose: () => void
 }) {
   const ytId = exercise?.videoUrl ? youtubeId(exercise.videoUrl) : null
+  useEscapeKey(onClose)
 
   return (
     <div

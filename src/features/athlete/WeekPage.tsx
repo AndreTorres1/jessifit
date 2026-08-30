@@ -3,6 +3,7 @@ import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
 import { sortByWeekday, todayWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button } from '@/components/ui'
+import { useToast } from '@/components/Toast'
 import { WeekGrid } from '../shared/WeekGrid'
 import { ExerciseList } from '../shared/ExerciseList'
 import { HistoryList } from '../shared/HistoryList'
@@ -10,6 +11,7 @@ import { weekProgress } from '../shared/stats'
 
 export default function WeekPage() {
   const { plan, completions, mark, clearMark, history } = useApp()
+  const { show } = useToast()
   const today = todayWeekday()
   const { done, total } = weekProgress(plan.days, completions)
   const days = sortByWeekday(plan.days)
@@ -87,13 +89,14 @@ export default function WeekPage() {
                       <Button
                         variant="soft"
                         className="flex-1 text-xs"
-                        onClick={() =>
+                        onClick={() => {
                           mark(d.day, {
                             status: 'done',
                             difficulty: 3,
                             markedAt: new Date().toISOString(),
                           })
-                        }
+                          show('Treino marcado como feito 💪')
+                        }}
                       >
                         <Check size={15} /> Feito
                       </Button>

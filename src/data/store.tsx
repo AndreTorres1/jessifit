@@ -45,6 +45,7 @@ interface AppState {
 
 interface AppContextValue extends AppState {
   setRole: (role: Role | null) => void
+  setAthleteName: (name: string) => void
   publishPlan: (days: WorkoutDay[], rawText: string) => void
   mark: (day: Weekday, completion: Completion) => void
   clearMark: (day: Weekday) => void
@@ -108,6 +109,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       setRole: (role) => setState((s) => ({ ...s, role })),
+      setAthleteName: (name) =>
+        setState((s) => ({ ...s, plan: { ...s.plan, athleteName: name } })),
       publishPlan: (days, rawText) =>
         setState((s) => ({
           ...s,

@@ -5,6 +5,7 @@ import { WEEKDAY_LABEL } from '@/types'
 import { todayWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { ProgressRing } from '@/components/ProgressRing'
+import { useToast } from '@/components/Toast'
 import { ExerciseList } from '../shared/ExerciseList'
 import { countDone, weekProgress } from '../shared/stats'
 
@@ -38,6 +39,7 @@ function DifficultyPicker({
 
 function CompletionControls({ day }: { day: ReturnType<typeof todayWeekday> }) {
   const { completions, mark, clearMark } = useApp()
+  const { show } = useToast()
   const existing = completions[day]
   const [mode, setMode] = useState<'idle' | 'failing'>('idle')
   const [difficulty, setDifficulty] = useState(existing?.difficulty ?? 3)
@@ -120,6 +122,7 @@ function CompletionControls({ day }: { day: ReturnType<typeof todayWeekday> }) {
       markedAt: new Date().toISOString(),
     }
     mark(day, c)
+    show('Boa! Treino concluído 💪')
   }
 
   return (
@@ -174,6 +177,18 @@ export default function TodayPage() {
         </div>
         <ProgressRing value={done} total={total} label="semana" />
       </div>
+
+      {total > 0 && done === total && (
+        <Card className="flex items-center gap-3 border-accent/50">
+          <div className="text-2xl">🎉</div>
+          <div>
+            <p className="font-[var(--font-display)] font-bold">Semana completa!</p>
+            <p className="text-sm text-muted">
+              Fizeste todos os treinos desta semana. Orgulho total. 🌿
+            </p>
+          </div>
+        </Card>
+      )}
 
       {!day && (
         <EmptyState icon={<CalendarX size={30} />} title="Sem treino definido">
