@@ -47,6 +47,8 @@ interface AppContextValue extends AppState {
   setRole: (role: Role | null) => void
   setAthleteName: (name: string) => void
   publishPlan: (days: WorkoutDay[], rawText: string) => void
+  /** Atualiza a semana atual (edição) sem arquivar nem avançar o número. */
+  updateCurrentPlan: (days: WorkoutDay[], rawText: string) => void
   mark: (day: Weekday, completion: Completion) => void
   clearMark: (day: Weekday) => void
   /** Procura na biblioteca o exercício correspondente a um nome (por chave normalizada). */
@@ -123,6 +125,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             rawText,
           },
           completions: {}, // nova semana começa limpa
+        })),
+      updateCurrentPlan: (days, rawText) =>
+        setState((s) => ({
+          ...s,
+          plan: { ...s.plan, days, rawText },
         })),
       mark: (day, completion) =>
         setState((s) => ({

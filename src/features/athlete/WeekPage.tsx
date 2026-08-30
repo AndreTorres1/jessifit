@@ -4,6 +4,7 @@ import { WEEKDAY_LABEL } from '@/types'
 import { sortByWeekday, todayWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button } from '@/components/ui'
 import { useToast } from '@/components/Toast'
+import { haptic } from '@/lib/haptics'
 import { WeekGrid } from '../shared/WeekGrid'
 import { ExerciseList } from '../shared/ExerciseList'
 import { HistoryList } from '../shared/HistoryList'
@@ -95,6 +96,7 @@ export default function WeekPage() {
                             difficulty: 3,
                             markedAt: new Date().toISOString(),
                           })
+                          haptic([20, 40, 20])
                           show('Treino marcado como feito 💪')
                         }}
                       >

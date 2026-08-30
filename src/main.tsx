@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom'
 import { AppProvider } from './data/store'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
+import { Onboarding } from './components/Onboarding'
+import { ReloadPrompt } from './components/ReloadPrompt'
 import { applyTheme, getTheme } from './lib/theme'
 import App from './App'
 import './index.css'
@@ -18,6 +20,8 @@ createRoot(document.getElementById('root')!).render(
         <AppProvider>
           <ToastProvider>
             <App />
+            <ReloadPrompt />
+            <Onboarding />
           </ToastProvider>
         </AppProvider>
       </BrowserRouter>

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Flame, MessageSquareQuote, Plus } from 'lucide-react'
+import { Flame, MessageSquareQuote, Plus, Pencil } from 'lucide-react'
 import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL, type Weekday } from '@/types'
 import { sortByWeekday } from '@/lib/format'
@@ -79,9 +79,20 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <Button block onClick={() => navigate('/importar')} className="text-base">
-        <Plus size={18} /> Criar próxima semana
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button block onClick={() => navigate('/importar')} className="text-base">
+          <Plus size={18} /> Criar próxima semana
+        </Button>
+        {plan.rawText && (
+          <Button
+            variant="ghost"
+            block
+            onClick={() => navigate('/importar', { state: { edit: true } })}
+          >
+            <Pencil size={16} /> Editar semana atual
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

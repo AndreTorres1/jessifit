@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import {
   Plus,
   Video,
@@ -7,10 +7,11 @@ import {
   Trash2,
   X,
   Dumbbell,
+  Search,
 } from 'lucide-react'
 import { useApp } from '@/data/store'
 import type { Exercise } from '@/types'
-import { youtubeId } from '@/lib/text'
+import { youtubeId, normalize } from '@/lib/text'
 import { fileToScaledDataUrl } from '@/lib/image'
 import { useEscapeKey } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
@@ -190,10 +191,44 @@ function Editor({
   )
 }
 
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+        active
+          ? 'bg-accent-wash text-accent-deep'
+          : 'bg-surface-2 text-muted hover:text-ink-soft'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
 export default function LibraryPage() {
   const { exercises, deleteExercise } = useApp()
   const [editing, setEditing] = useState<Exercise | null>(null)
-  const sorted = [...exercises].sort((a, b) => a.name.localeCompare(b.name, 'pt'))
+  const [query, setQuery] = useState('')
+  const [group, setGroup] = useState<string | null>(null)
+
+  const groups = [...new Set(exercises.map((e) => e.muscleGroup).filter(Boolean))].sort(
+    (a, b) => a!.localeCompare(b!, 'pt'),
+  ) as string[]
+
+  const q = normalize(query)
+  const sorted = [...exercises]
+    .filter((e) => (group ? e.muscleGroup === group : true))
+    .filter((e) => (q ? normalize(e.name).includes(q) : true))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt'))
 
   return (
     <div className="flex flex-col gap-4">
@@ -212,9 +247,42 @@ export default function LibraryPage() {
         usares num treino.
       </p>
 
-      {sorted.length === 0 ? (
+      {exercises.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="relative">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Pesquisar exercício…"
+              className="w-full rounded-xl border border-line bg-surface-2 py-2.5 pl-9 pr-3 text-sm text-ink outline-none focus:border-accent"
+            />
+          </div>
+          {groups.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              <FilterChip active={group === null} onClick={() => setGroup(null)}>
+                Todos
+              </FilterChip>
+              {groups.map((g) => (
+                <FilterChip key={g} active={group === g} onClick={() => setGroup(g)}>
+                  {g}
+                </FilterChip>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {exercises.length === 0 ? (
         <EmptyState icon={<Dumbbell size={30} />} title="Biblioteca vazia">
           Adiciona o teu primeiro exercício com vídeo ou foto.
+        </EmptyState>
+      ) : sorted.length === 0 ? (
+        <EmptyState icon={<Search size={30} />} title="Sem resultados">
+          Nenhum exercício corresponde à pesquisa.
         </EmptyState>
       ) : (
         <div className="flex flex-col gap-2">

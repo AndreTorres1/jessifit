@@ -6,6 +6,7 @@ import { todayWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { ProgressRing } from '@/components/ProgressRing'
 import { useToast } from '@/components/Toast'
+import { haptic } from '@/lib/haptics'
 import { ExerciseList } from '../shared/ExerciseList'
 import { countDone, weekProgress } from '../shared/stats'
 
@@ -122,6 +123,7 @@ function CompletionControls({ day }: { day: ReturnType<typeof todayWeekday> }) {
       markedAt: new Date().toISOString(),
     }
     mark(day, c)
+    haptic([20, 40, 20])
     show('Boa! Treino concluído 💪')
   }
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AlertTriangle, Coffee, Check, Sparkles, Copy } from 'lucide-react'
 import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
@@ -23,10 +23,12 @@ Corrida 30min
 Domingo - descanso`
 
 export default function ImportPage() {
-  const { plan, publishPlan, findExercise } = useApp()
+  const { plan, publishPlan, updateCurrentPlan, findExercise } = useApp()
   const { show } = useToast()
   const navigate = useNavigate()
-  const [text, setText] = useState('')
+  const location = useLocation()
+  const editing = (location.state as { edit?: boolean } | null)?.edit === true
+  const [text, setText] = useState(() => (editing ? (plan.rawText ?? '') : ''))
 
   const parsed = useMemo(() => parseWorkouts(text), [text])
   const days = sortByWeekday(parsed.days)
@@ -45,18 +47,27 @@ export default function ImportPage() {
   }, [parsed, findExercise])
 
   const publish = () => {
-    publishPlan(parsed.days, text)
-    show(`Semana publicada para a ${plan.athleteName}`)
+    if (editing) {
+      updateCurrentPlan(parsed.days, text)
+      show('Semana atualizada')
+    } else {
+      publishPlan(parsed.days, text)
+      show(`Semana publicada para a ${plan.athleteName}`)
+    }
     navigate('/painel')
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <Eyebrow>Semana {plan.weekNumber + 1}</Eyebrow>
-        <h1 className="text-2xl font-extrabold">Importar treino</h1>
+        <Eyebrow>Semana {editing ? plan.weekNumber : plan.weekNumber + 1}</Eyebrow>
+        <h1 className="text-2xl font-extrabold">
+          {editing ? 'Editar semana' : 'Importar treino'}
+        </h1>
         <p className="mt-1 text-sm text-muted">
-          Escreve ou cola o plano em texto. A app estrutura-o — confirma antes de enviar.
+          {editing
+            ? 'Ajusta o plano desta semana. As marcações já feitas são mantidas.'
+            : 'Escreve ou cola o plano em texto. A app estrutura-o — confirma antes de enviar.'}
         </p>
       </div>
 
@@ -170,7 +181,8 @@ export default function ImportPage() {
       )}
 
       <Button block disabled={!hasContent || parsed.days.length === 0} onClick={publish} className="text-base">
-        <Check size={18} /> Publicar semana para a {plan.athleteName}
+        <Check size={18} />{' '}
+        {editing ? 'Guardar alterações' : `Publicar semana para a ${plan.athleteName}`}
       </Button>
     </div>
   )
