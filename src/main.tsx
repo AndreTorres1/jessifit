@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { AppProvider } from './data/store'
+import { AuthProvider } from './lib/auth'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { Onboarding } from './components/Onboarding'
@@ -17,13 +18,15 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <BrowserRouter>
-        <AppProvider>
-          <ToastProvider>
-            <App />
-            <ReloadPrompt />
-            <Onboarding />
-          </ToastProvider>
-        </AppProvider>
+        <AuthProvider>
+          <AppProvider>
+            <ToastProvider>
+              <App />
+              <ReloadPrompt />
+              <Onboarding />
+            </ToastProvider>
+          </AppProvider>
+        </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>
   </StrictMode>,

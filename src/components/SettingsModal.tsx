@@ -3,6 +3,7 @@ import { X, RotateCcw } from 'lucide-react'
 import { useApp } from '@/data/store'
 import { useToast } from './Toast'
 import { useEscapeKey } from '@/lib/hooks'
+import { isDemoMode } from '@/lib/supabase'
 import { Button } from './ui'
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -54,20 +55,22 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           Guardar
         </Button>
 
-        <div className="mt-6 border-t border-line pt-4">
-          <button
-            onClick={() => {
-              if (confirm('Repor todos os dados de demonstração?')) {
-                reset()
-                show('Dados demo repostos')
-                onClose()
-              }
-            }}
-            className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted hover:bg-surface-2"
-          >
-            <RotateCcw size={15} /> Repor dados de demonstração
-          </button>
-        </div>
+        {isDemoMode && (
+          <div className="mt-6 border-t border-line pt-4">
+            <button
+              onClick={() => {
+                if (confirm('Repor todos os dados de demonstração?')) {
+                  reset()
+                  show('Dados demo repostos')
+                  onClose()
+                }
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted hover:bg-surface-2"
+            >
+              <RotateCcw size={15} /> Repor dados de demonstração
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

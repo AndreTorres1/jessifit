@@ -10,6 +10,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { useApp } from './data/store'
+import { useAuth } from './lib/auth'
 import { Logo, Wordmark } from './components/ui'
 import { InstallHint } from './components/InstallHint'
 import { ThemeToggle } from './components/ThemeToggle'
@@ -52,7 +53,12 @@ function Fallback() {
 
 function TopBar() {
   const { role, setRole, plan } = useApp()
+  const { signOut } = useAuth()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const logout = () => {
+    setRole(null)
+    void signOut()
+  }
   return (
     <header className="safe-top sticky top-0 z-10 border-b border-line bg-ground/85 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center gap-2.5 px-4 py-2.5">
@@ -73,9 +79,9 @@ function TopBar() {
             </button>
           )}
           <button
-            onClick={() => setRole(null)}
+            onClick={logout}
             className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-surface-2"
-            aria-label="Trocar de perfil"
+            aria-label="Sair"
           >
             <LogOut size={16} />
           </button>
@@ -113,8 +119,10 @@ function TabBar({ role }: { role: Role }) {
 }
 
 export default function App() {
-  const { role } = useApp()
+  const { role, loading } = useApp()
   const location = useLocation()
+
+  if (loading) return <Fallback />
 
   if (!role) {
     return (

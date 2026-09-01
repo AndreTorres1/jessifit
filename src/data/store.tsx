@@ -3,12 +3,16 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import type { Exercise, Role, Weekday, WorkoutDay } from '@/types'
 import { matchKey } from '@/lib/text'
 import { loadJSON, saveJSON } from '@/lib/storage'
+import { isDemoMode } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth'
+import { loadShared, saveShared, subscribeShared, type SharedData } from './remote'
 import { demoWeek, demoExercises } from './mock'
 
 export interface Completion {
@@ -35,23 +39,26 @@ export interface WeekSummary {
   endedAt: string // ISO
 }
 
-interface AppState {
-  role: Role | null
+/** Fatia partilhada do estado (persistida em localStorage ou no Supabase). */
+interface Shared {
   plan: WeekPlan
   completions: Partial<Record<Weekday, Completion>>
   exercises: Exercise[]
   history: WeekSummary[]
 }
 
+interface AppState extends Shared {
+  role: Role | null
+}
+
 interface AppContextValue extends AppState {
+  loading: boolean
   setRole: (role: Role | null) => void
   setAthleteName: (name: string) => void
   publishPlan: (days: WorkoutDay[], rawText: string) => void
-  /** Atualiza a semana atual (edição) sem arquivar nem avançar o número. */
   updateCurrentPlan: (days: WorkoutDay[], rawText: string) => void
   mark: (day: Weekday, completion: Completion) => void
   clearMark: (day: Weekday) => void
-  /** Procura na biblioteca o exercício correspondente a um nome (por chave normalizada). */
   findExercise: (name: string) => Exercise | undefined
   saveExercise: (exercise: Exercise) => void
   deleteExercise: (id: string) => void
@@ -59,8 +66,19 @@ interface AppContextValue extends AppState {
 }
 
 const STORAGE_KEY = 'jessifit:state:v1'
+const online = !isDemoMode
 
-const initialState: AppState = {
+const emptyPlan: WeekPlan = { weekNumber: 1, athleteName: 'Atleta', days: [] }
+
+const onlineInitial: AppState = {
+  role: null,
+  plan: emptyPlan,
+  completions: {},
+  exercises: [],
+  history: [],
+}
+
+const demoInitial: AppState = {
   role: null,
   plan: demoWeek,
   completions: {
@@ -79,7 +97,6 @@ const initialState: AppState = {
   ],
 }
 
-/** Resumo do progresso da semana atual, a partir do plano e das marcações. */
 function summarizeWeek(state: AppState): WeekSummary {
   const training = state.plan.days.filter((d) => !d.rest && d.exercises.length > 0)
   const done = training.filter((d) => state.completions[d.day]?.status === 'done').length
@@ -91,80 +108,141 @@ function summarizeWeek(state: AppState): WeekSummary {
   }
 }
 
-function load(): AppState {
+function loadDemo(): AppState {
   const parsed = loadJSON<AppState | null>(STORAGE_KEY, null)
-  if (!parsed) return initialState
-  // o papel não é persistido entre sessões — pede sempre no arranque
-  return { ...initialState, ...parsed, role: null }
+  if (!parsed) return demoInitial
+  return { ...demoInitial, ...parsed, role: null }
+}
+
+/** Aplica uma fatia partilhada (do backend) por cima de um estado. */
+function applyShared(base: AppState, data: SharedData): AppState {
+  return {
+    ...base,
+    plan: (data.plan as WeekPlan) ?? base.plan,
+    completions: (data.completions as AppState['completions']) ?? base.completions,
+    exercises: (data.exercises as Exercise[]) ?? base.exercises,
+    history: (data.history as WeekSummary[]) ?? base.history,
+  }
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(() => load())
+  const auth = useAuth()
+  const [state, setState] = useState<AppState>(() => (online ? onlineInitial : loadDemo()))
+  const [dataLoaded, setDataLoaded] = useState(!online)
 
+  const revRef = useRef<string>('') // última revisão que nós próprios gravámos
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>()
+
+  // ---- Persistência demo (localStorage) ------------------------------------
   useEffect(() => {
+    if (online) return
     saveJSON(STORAGE_KEY, state)
   }, [state])
 
-  const value = useMemo<AppContextValue>(
-    () => ({
+  // ---- Carregar + subscrever (online) --------------------------------------
+  useEffect(() => {
+    if (!online) return
+    if (!auth.session) {
+      setState(onlineInitial)
+      setDataLoaded(false)
+      return
+    }
+    let active = true
+    setDataLoaded(false)
+    loadShared()
+      .then((data) => {
+        if (!active) return
+        setState((s) => (data ? applyShared(s, data) : s))
+        setDataLoaded(true)
+      })
+      .catch(() => active && setDataLoaded(true))
+
+    const unsub = subscribeShared((data) => {
+      if (data._rev && data._rev === revRef.current) return // ignora o nosso eco
+      setState((s) => applyShared(s, data))
+    })
+    return () => {
+      active = false
+      unsub()
+    }
+  }, [auth.session])
+
+  /** Grava a fatia partilhada no backend (com debounce), marcando a revisão. */
+  const persist = (next: AppState) => {
+    if (!online || !dataLoaded) return
+    const rev = Math.random().toString(36).slice(2)
+    revRef.current = rev
+    const payload: SharedData = {
+      plan: next.plan,
+      completions: next.completions,
+      exercises: next.exercises,
+      history: next.history,
+      _rev: rev,
+    }
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      saveShared(payload).catch(() => {})
+    }, 350)
+  }
+
+  const commit = (next: AppState) => {
+    setState(next)
+    persist(next)
+  }
+
+  const value = useMemo<AppContextValue>(() => {
+    const role = online ? (auth.profile?.role ?? null) : state.role
+    const loading = online && (auth.loading || (!!auth.session && !dataLoaded))
+
+    return {
       ...state,
-      setRole: (role) => setState((s) => ({ ...s, role })),
+      role,
+      loading,
+      setRole: (r) => {
+        if (!online) setState((s) => ({ ...s, role: r }))
+      },
       setAthleteName: (name) =>
-        setState((s) => ({ ...s, plan: { ...s.plan, athleteName: name } })),
+        commit({ ...state, plan: { ...state.plan, athleteName: name } }),
       publishPlan: (days, rawText) =>
-        setState((s) => ({
-          ...s,
-          // arquiva a semana atual antes de a substituir
-          history: [summarizeWeek(s), ...s.history].slice(0, 24),
-          plan: {
-            ...s.plan,
-            weekNumber: s.plan.weekNumber + 1,
-            days,
-            rawText,
-          },
-          completions: {}, // nova semana começa limpa
-        })),
-      updateCurrentPlan: (days, rawText) =>
-        setState((s) => ({
-          ...s,
-          plan: { ...s.plan, days, rawText },
-        })),
-      mark: (day, completion) =>
-        setState((s) => ({
-          ...s,
-          completions: { ...s.completions, [day]: completion },
-        })),
-      clearMark: (day) =>
-        setState((s) => {
-          const next = { ...s.completions }
-          delete next[day]
-          return { ...s, completions: next }
+        commit({
+          ...state,
+          history: [summarizeWeek(state), ...state.history].slice(0, 24),
+          plan: { ...state.plan, weekNumber: state.plan.weekNumber + 1, days, rawText },
+          completions: {},
         }),
+      updateCurrentPlan: (days, rawText) =>
+        commit({ ...state, plan: { ...state.plan, days, rawText } }),
+      mark: (day, completion) =>
+        commit({ ...state, completions: { ...state.completions, [day]: completion } }),
+      clearMark: (day) => {
+        const next = { ...state.completions }
+        delete next[day]
+        commit({ ...state, completions: next })
+      },
       findExercise: (name) => {
         const key = matchKey(name)
         return state.exercises.find((e) => matchKey(e.name) === key)
       },
-      saveExercise: (exercise) =>
-        setState((s) => {
-          const exists = s.exercises.some((e) => e.id === exercise.id)
-          return {
-            ...s,
-            exercises: exists
-              ? s.exercises.map((e) => (e.id === exercise.id ? exercise : e))
-              : [...s.exercises, exercise],
-          }
-        }),
+      saveExercise: (exercise) => {
+        const exists = state.exercises.some((e) => e.id === exercise.id)
+        commit({
+          ...state,
+          exercises: exists
+            ? state.exercises.map((e) => (e.id === exercise.id ? exercise : e))
+            : [...state.exercises, exercise],
+        })
+      },
       deleteExercise: (id) =>
-        setState((s) => ({
-          ...s,
-          exercises: s.exercises.filter((e) => e.id !== id),
-        })),
-      reset: () => setState(initialState),
-    }),
-    [state],
-  )
+        commit({ ...state, exercises: state.exercises.filter((e) => e.id !== id) }),
+      reset: () => {
+        if (online) commit(onlineInitial)
+        else setState(demoInitial)
+      },
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, auth.profile, auth.loading, auth.session, dataLoaded])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
