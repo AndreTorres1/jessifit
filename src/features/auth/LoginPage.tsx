@@ -48,16 +48,20 @@ function OnlineLogin() {
   const [role, setRole] = useState<Role>('athlete')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true)
     setError(null)
+    setInfo(null)
     const err =
       mode === 'in'
         ? await signIn(email.trim(), password)
         : await signUp(email.trim(), password, name.trim(), role)
     if (err) setError(err)
+    else if (mode === 'up')
+      setInfo('Conta criada! Se te for pedido, confirma o email para entrares.')
     setBusy(false)
   }
 
@@ -129,6 +133,11 @@ function OnlineLogin() {
         </Field>
 
         {error && <p className="text-sm text-red">{error}</p>}
+        {info && (
+          <p className="rounded-xl bg-accent-wash px-3 py-2.5 text-sm text-accent-deep">
+            {info}
+          </p>
+        )}
 
         <Button block disabled={busy} className="mt-1 text-base">
           {busy ? (
