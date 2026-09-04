@@ -29,6 +29,7 @@ export default function ImportPage() {
   const location = useLocation()
   const editing = (location.state as { edit?: boolean } | null)?.edit === true
   const [text, setText] = useState(() => (editing ? (plan.rawText ?? '') : ''))
+  const [coachNote, setCoachNote] = useState(() => (editing ? (plan.coachNote ?? '') : ''))
 
   const parsed = useMemo(() => parseWorkouts(text), [text])
   const days = sortByWeekday(parsed.days)
@@ -48,10 +49,10 @@ export default function ImportPage() {
 
   const publish = () => {
     if (editing) {
-      updateCurrentPlan(parsed.days, text)
+      updateCurrentPlan(parsed.days, text, coachNote)
       show('Semana atualizada')
     } else {
-      publishPlan(parsed.days, text)
+      publishPlan(parsed.days, text, coachNote)
       show(`Semana publicada para a ${plan.athleteName}`)
     }
     navigate('/painel')
@@ -188,6 +189,18 @@ export default function ImportPage() {
           demonstração. Depois de publicar, adiciona vídeo/foto na aba{' '}
           <b>Biblioteca</b>.
         </p>
+      )}
+
+      {hasContent && (
+        <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+          Mensagem para a {plan.athleteName} (opcional)
+          <input
+            value={coachNote}
+            onChange={(e) => setCoachNote(e.target.value)}
+            placeholder="Ex.: Semana puxada, mas tu consegues! 💪"
+            className="rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm text-ink outline-none focus:border-accent"
+          />
+        </label>
       )}
 
       <Button block disabled={!hasContent || parsed.days.length === 0} onClick={publish} className="text-base">

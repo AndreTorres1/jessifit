@@ -37,6 +37,8 @@ export interface WeekPlan {
   days: WorkoutDay[]
   /** Texto original importado, para reimportar/editar. */
   rawText?: string
+  /** Recado do treinador para a atleta nesta semana. */
+  coachNote?: string
 }
 
 /** Resumo de uma semana arquivada, para o histórico. */
@@ -66,8 +68,8 @@ interface AppContextValue extends AppState {
   online: boolean
   setRole: (role: Role | null) => void
   setAthleteName: (name: string) => void
-  publishPlan: (days: WorkoutDay[], rawText: string) => void
-  updateCurrentPlan: (days: WorkoutDay[], rawText: string) => void
+  publishPlan: (days: WorkoutDay[], rawText: string, coachNote?: string) => void
+  updateCurrentPlan: (days: WorkoutDay[], rawText: string, coachNote?: string) => void
   mark: (day: Weekday, completion: Completion) => void
   clearMark: (day: Weekday) => void
   findExercise: (name: string) => Exercise | undefined
@@ -234,15 +236,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
       setAthleteName: (name) =>
         commit({ ...state, plan: { ...state.plan, athleteName: name } }),
-      publishPlan: (days, rawText) =>
+      publishPlan: (days, rawText, coachNote) =>
         commit({
           ...state,
           history: [summarizeWeek(state), ...state.history].slice(0, 24),
-          plan: { ...state.plan, weekNumber: state.plan.weekNumber + 1, days, rawText },
+          plan: {
+            ...state.plan,
+            weekNumber: state.plan.weekNumber + 1,
+            days,
+            rawText,
+            coachNote: coachNote?.trim() || undefined,
+          },
           completions: {},
         }),
-      updateCurrentPlan: (days, rawText) =>
-        commit({ ...state, plan: { ...state.plan, days, rawText } }),
+      updateCurrentPlan: (days, rawText, coachNote) =>
+        commit({
+          ...state,
+          plan: { ...state.plan, days, rawText, coachNote: coachNote?.trim() || undefined },
+        }),
       mark: (day, completion) =>
         commit({ ...state, completions: { ...state.completions, [day]: completion } }),
       clearMark: (day) => {

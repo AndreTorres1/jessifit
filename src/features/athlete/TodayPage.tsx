@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Flame, Check, X, Coffee, CalendarX, Camera, Loader2 } from 'lucide-react'
+import { Flame, Check, X, Coffee, CalendarX, Camera, Loader2, MessageCircle } from 'lucide-react'
 import { useApp, type Completion } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
 import { todayWeekday } from '@/lib/format'
@@ -277,6 +277,18 @@ export default function TodayPage() {
         </div>
         <ProgressRing value={done} total={total} label="semana" />
       </div>
+
+      {plan.coachNote && (
+        <Card className="flex items-start gap-3 border-accent/40">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-wash text-accent-deep">
+            <MessageCircle size={18} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-accent-deep">Recado do treinador</p>
+            <p className="text-sm text-ink-soft">{plan.coachNote}</p>
+          </div>
+        </Card>
+      )}
 
       {weekComplete && (
         <Card className="relative flex items-center gap-3 overflow-hidden border-accent/50">
