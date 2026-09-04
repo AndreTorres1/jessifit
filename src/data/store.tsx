@@ -12,7 +12,13 @@ import { matchKey } from '@/lib/text'
 import { loadJSON, saveJSON } from '@/lib/storage'
 import { isDemoMode } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import { loadShared, saveShared, subscribeShared, type SharedData } from './remote'
+import {
+  loadShared,
+  saveShared,
+  subscribeShared,
+  claimAccess,
+  type SharedData,
+} from './remote'
 import { demoWeek, demoExercises } from './mock'
 
 export interface Completion {
@@ -53,6 +59,7 @@ interface AppState extends Shared {
 
 interface AppContextValue extends AppState {
   loading: boolean
+  accessDenied: boolean
   setRole: (role: Role | null) => void
   setAthleteName: (name: string) => void
   publishPlan: (days: WorkoutDay[], rawText: string) => void
@@ -131,6 +138,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const auth = useAuth()
   const [state, setState] = useState<AppState>(() => (online ? onlineInitial : loadDemo()))
   const [dataLoaded, setDataLoaded] = useState(!online)
+  const [accessDenied, setAccessDenied] = useState(false)
 
   const revRef = useRef<string>('') // última revisão que nós próprios gravámos
   const saveTimer = useRef<ReturnType<typeof setTimeout>>()
@@ -147,22 +155,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!auth.session) {
       setState(onlineInitial)
       setDataLoaded(false)
+      setAccessDenied(false)
       return
     }
     let active = true
+    let unsub = () => {}
     setDataLoaded(false)
-    loadShared()
-      .then((data) => {
+    claimAccess()
+      .then(async (ok) => {
+        if (!active) return
+        if (!ok) {
+          setAccessDenied(true)
+          setDataLoaded(true)
+          return
+        }
+        setAccessDenied(false)
+        const data = await loadShared()
         if (!active) return
         setState((s) => (data ? applyShared(s, data) : s))
         setDataLoaded(true)
+        unsub = subscribeShared((d) => {
+          if (d._rev && d._rev === revRef.current) return // ignora o nosso eco
+          setState((s) => applyShared(s, d))
+        })
       })
       .catch(() => active && setDataLoaded(true))
 
-    const unsub = subscribeShared((data) => {
-      if (data._rev && data._rev === revRef.current) return // ignora o nosso eco
-      setState((s) => applyShared(s, data))
-    })
     return () => {
       active = false
       unsub()
@@ -200,6 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...state,
       role,
       loading,
+      accessDenied,
       setRole: (r) => {
         if (!online) setState((s) => ({ ...s, role: r }))
       },
@@ -242,7 +261,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, auth.profile, auth.loading, auth.session, dataLoaded])
+  }, [state, auth.profile, auth.loading, auth.session, dataLoaded, accessDenied])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

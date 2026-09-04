@@ -12,6 +12,14 @@ export interface SharedData {
   _rev?: string
 }
 
+/** Reclama um dos lugares de acesso. Devolve true se o utilizador pode usar a app. */
+export async function claimAccess(): Promise<boolean> {
+  if (!supabase) return true
+  const { data, error } = await supabase.rpc('claim_access')
+  if (error) return false
+  return data === true
+}
+
 export async function loadShared(): Promise<SharedData | null> {
   if (!supabase) return null
   const { data, error } = await supabase

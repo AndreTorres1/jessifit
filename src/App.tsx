@@ -118,11 +118,38 @@ function TabBar({ role }: { role: Role }) {
   )
 }
 
+function Restricted() {
+  const { signOut } = useAuth()
+  return (
+    <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
+      <Logo size={56} />
+      <div>
+        <h1 className="font-[var(--font-display)] text-xl font-bold">Acesso restrito</h1>
+        <p className="mt-1 text-sm text-muted">
+          Esta JessiFit é privada e já tem os seus dois utilizadores. Fala com o
+          treinador se achas que devias ter acesso.
+        </p>
+      </div>
+      <button
+        onClick={() => void signOut()}
+        className="rounded-xl px-4 py-3 text-sm font-semibold text-white"
+        style={{
+          background: 'linear-gradient(150deg, var(--accent-bright), var(--accent-deep))',
+        }}
+      >
+        Sair
+      </button>
+    </div>
+  )
+}
+
 export default function App() {
-  const { role, loading } = useApp()
+  const { role, loading, accessDenied } = useApp()
   const location = useLocation()
 
   if (loading) return <Fallback />
+
+  if (accessDenied) return <Restricted />
 
   if (!role) {
     return (
