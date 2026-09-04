@@ -1,10 +1,13 @@
-import { Coffee, Check, X } from 'lucide-react'
+import { useState } from 'react'
+import { Coffee, Check, X, Camera, Loader2 } from 'lucide-react'
 import { useApp } from '@/data/store'
-import { WEEKDAY_LABEL } from '@/types'
+import { WEEKDAY_LABEL, type Weekday } from '@/types'
 import { sortByWeekday, todayWeekday } from '@/lib/format'
 import { Card, Pill, Eyebrow, Button } from '@/components/ui'
 import { useToast } from '@/components/Toast'
+import { CameraCapture } from '@/components/CameraCapture'
 import { haptic } from '@/lib/haptics'
+import { uploadImage } from '@/lib/image'
 import { WeekGrid } from '../shared/WeekGrid'
 import { ExerciseList } from '../shared/ExerciseList'
 import { HistoryList } from '../shared/HistoryList'
@@ -16,6 +19,36 @@ export default function WeekPage() {
   const today = todayWeekday()
   const { done, total } = weekProgress(plan.days, completions)
   const days = sortByWeekday(plan.days)
+  const [cameraDay, setCameraDay] = useState<Weekday | null>(null)
+  const [uploadingDay, setUploadingDay] = useState<Weekday | null>(null)
+
+  if (cameraDay) {
+    return (
+      <CameraCapture
+        onClose={() => setCameraDay(null)}
+        onCapture={async (file) => {
+          const d = cameraDay
+          setCameraDay(null)
+          setUploadingDay(d)
+          try {
+            const url = await uploadImage('workout-proofs', file, 1080, 0.85)
+            mark(d, {
+              status: 'done',
+              difficulty: 3,
+              proofUrl: url,
+              markedAt: new Date().toISOString(),
+            })
+            haptic([20, 40, 20])
+            show('Treino marcado como feito 💪')
+          } catch {
+            show('Não consegui guardar a foto.')
+          } finally {
+            setUploadingDay(null)
+          }
+        }}
+      />
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -90,17 +123,16 @@ export default function WeekPage() {
                       <Button
                         variant="soft"
                         className="flex-1 text-xs"
-                        onClick={() => {
-                          mark(d.day, {
-                            status: 'done',
-                            difficulty: 3,
-                            markedAt: new Date().toISOString(),
-                          })
-                          haptic([20, 40, 20])
-                          show('Treino marcado como feito 💪')
-                        }}
+                        disabled={uploadingDay === d.day}
+                        onClick={() => setCameraDay(d.day)}
                       >
-                        <Check size={15} /> Feito
+                        {uploadingDay === d.day ? (
+                          <Loader2 size={15} className="animate-spin" />
+                        ) : (
+                          <>
+                            <Camera size={15} /> Feito
+                          </>
+                        )}
                       </Button>
                       <Button
                         variant="danger"

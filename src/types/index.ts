@@ -70,7 +70,9 @@ export interface Exercise {
   muscleGroup: string | null
   /** Link de vídeo (ex.: YouTube). */
   videoUrl: string | null
-  /** Foto/GIF próprio, guardado como data URL em modo demo. */
+  /** Foto/GIF próprio: URL do Supabase Storage (online) ou data URL (demo). */
+  imageUrl?: string | null
+  /** @deprecated Compatibilidade: fotos antigas guardadas em base64. */
   imageDataUrl: string | null
   note: string | null
 }

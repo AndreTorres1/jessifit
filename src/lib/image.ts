@@ -1,6 +1,8 @@
+import { supabase } from './supabase'
+
 /**
  * Lê um ficheiro de imagem e devolve um data URL redimensionado (máx. `maxW` px
- * de largura) e comprimido em JPEG — para caber no localStorage em modo demo.
+ * de largura) e comprimido em JPEG.
  */
 export function fileToScaledDataUrl(file: File, maxW = 900, quality = 0.8): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -25,4 +27,34 @@ export function fileToScaledDataUrl(file: File, maxW = 900, quality = 0.8): Prom
     }
     reader.readAsDataURL(file)
   })
+}
+
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [head, b64] = dataUrl.split(',')
+  const mime = head.match(/:(.*?);/)?.[1] ?? 'image/jpeg'
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
+}
+
+/**
+ * Redimensiona a imagem e faz upload para um bucket do Supabase Storage,
+ * devolvendo o URL público. Em modo demo (sem Supabase), devolve um data URL.
+ */
+export async function uploadImage(
+  bucket: string,
+  file: File,
+  maxW = 1000,
+  quality = 0.82,
+): Promise<string> {
+  const dataUrl = await fileToScaledDataUrl(file, maxW, quality)
+  if (!supabase) return dataUrl // demo → base64
+  const blob = dataUrlToBlob(dataUrl)
+  const path = `${crypto.randomUUID()}.jpg`
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(path, blob, { contentType: 'image/jpeg', upsert: false })
+  if (error) throw new Error('Falha no upload da imagem.')
+  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
 }

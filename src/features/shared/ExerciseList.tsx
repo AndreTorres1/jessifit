@@ -16,6 +16,7 @@ function DemoSheet({
   onClose: () => void
 }) {
   const ytId = exercise?.videoUrl ? youtubeId(exercise.videoUrl) : null
+  const img = exercise?.imageUrl ?? exercise?.imageDataUrl
   useEscapeKey(onClose)
 
   return (
@@ -56,12 +57,8 @@ function DemoSheet({
               allowFullScreen
             />
           </div>
-        ) : exercise?.imageDataUrl ? (
-          <img
-            src={exercise.imageDataUrl}
-            alt={`Demonstração — ${name}`}
-            className="w-full rounded-2xl"
-          />
+        ) : img ? (
+          <img src={img} alt={`Demonstração — ${name}`} className="w-full rounded-2xl" />
         ) : (
           <div className="grid aspect-video place-items-center rounded-2xl bg-surface-2 text-muted">
             <PlayCircle size={44} strokeWidth={1.4} />
@@ -74,7 +71,7 @@ function DemoSheet({
           </p>
         )}
 
-        {!ytId && !exercise?.imageDataUrl && (
+        {!ytId && !img && (
           <>
             <p className="mt-3 text-sm text-muted">
               Ainda sem demonstração própria. Entretanto, vê exemplos:

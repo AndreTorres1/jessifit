@@ -27,6 +27,8 @@ export interface Completion {
   note?: string
   failReason?: string
   markedAt?: string // ISO
+  /** Foto de prova do treino (URL do Storage). */
+  proofUrl?: string
 }
 
 export interface WeekPlan {

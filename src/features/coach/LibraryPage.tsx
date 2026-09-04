@@ -12,7 +12,7 @@ import {
 import { useApp } from '@/data/store'
 import type { Exercise } from '@/types'
 import { youtubeId, normalize } from '@/lib/text'
-import { fileToScaledDataUrl } from '@/lib/image'
+import { uploadImage } from '@/lib/image'
 import { useEscapeKey } from '@/lib/hooks'
 import { useToast } from '@/components/Toast'
 import { Card, Button, Eyebrow, EmptyState, Pill } from '@/components/ui'
@@ -50,14 +50,16 @@ function Editor({
     setBusy(true)
     setError(null)
     try {
-      const url = await fileToScaledDataUrl(file)
-      set('imageDataUrl', url)
+      const url = await uploadImage('exercise-media', file, 1000, 0.82)
+      setEx((e) => ({ ...e, imageUrl: url, imageDataUrl: null }))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar imagem.')
     } finally {
       setBusy(false)
     }
   }
+
+  const preview = ex.imageUrl ?? ex.imageDataUrl
 
   const canSave = ex.name.trim().length > 0
   const ytOk = !ex.videoUrl || youtubeId(ex.videoUrl)
@@ -135,15 +137,11 @@ function Editor({
                 if (f) onPickImage(f)
               }}
             />
-            {ex.imageDataUrl ? (
+            {preview ? (
               <div className="relative">
-                <img
-                  src={ex.imageDataUrl}
-                  alt="Pré-visualização"
-                  className="w-full rounded-xl"
-                />
+                <img src={preview} alt="Pré-visualização" className="w-full rounded-xl" />
                 <button
-                  onClick={() => set('imageDataUrl', null)}
+                  onClick={() => setEx((e) => ({ ...e, imageUrl: null, imageDataUrl: null }))}
                   className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg bg-black/50 text-white"
                   aria-label="Remover foto"
                 >
@@ -288,12 +286,13 @@ export default function LibraryPage() {
         <div className="flex flex-col gap-2">
           {sorted.map((ex) => {
             const hasVideo = Boolean(ex.videoUrl && youtubeId(ex.videoUrl))
-            const hasImage = Boolean(ex.imageDataUrl)
+            const img = ex.imageUrl ?? ex.imageDataUrl
+            const hasImage = Boolean(img)
             return (
               <Card key={ex.id} className="flex items-center gap-3 py-3">
                 <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface-2">
                   {hasImage ? (
-                    <img src={ex.imageDataUrl!} alt="" className="h-full w-full object-cover" />
+                    <img src={img!} alt="" className="h-full w-full object-cover" />
                   ) : hasVideo ? (
                     <Video size={20} className="text-accent" />
                   ) : (

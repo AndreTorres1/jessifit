@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Flame, Check, X, Coffee, CalendarX } from 'lucide-react'
+import { Flame, Check, X, Coffee, CalendarX, Camera, Loader2 } from 'lucide-react'
 import { useApp, type Completion } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
 import { todayWeekday } from '@/lib/format'
@@ -7,8 +7,10 @@ import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { ProgressRing } from '@/components/ProgressRing'
 import { RestTimer } from '@/components/RestTimer'
 import { Confetti } from '@/components/Confetti'
+import { CameraCapture } from '@/components/CameraCapture'
 import { useToast } from '@/components/Toast'
 import { haptic } from '@/lib/haptics'
+import { uploadImage } from '@/lib/image'
 import { ExerciseList } from '../shared/ExerciseList'
 import { countDone, weekProgress } from '../shared/stats'
 
@@ -44,10 +46,13 @@ function CompletionControls({ day }: { day: ReturnType<typeof todayWeekday> }) {
   const { completions, mark, clearMark } = useApp()
   const { show } = useToast()
   const existing = completions[day]
-  const [mode, setMode] = useState<'idle' | 'failing'>('idle')
+  const [mode, setMode] = useState<'idle' | 'failing' | 'camera'>('idle')
   const [difficulty, setDifficulty] = useState(existing?.difficulty ?? 3)
   const [note, setNote] = useState(existing?.note ?? '')
   const [reason, setReason] = useState(existing?.failReason ?? '')
+  const [proof, setProof] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   if (existing && existing.status !== 'pending') {
     const done = existing.status === 'done'
@@ -81,7 +86,35 @@ function CompletionControls({ day }: { day: ReturnType<typeof todayWeekday> }) {
             “{existing.note}”
           </p>
         )}
+        {done && existing.proofUrl && (
+          <img
+            src={existing.proofUrl}
+            alt="Prova de treino"
+            className="mt-3 w-full rounded-xl"
+          />
+        )}
       </Card>
+    )
+  }
+
+  if (mode === 'camera') {
+    return (
+      <CameraCapture
+        onClose={() => setMode('idle')}
+        onCapture={async (file) => {
+          setMode('idle')
+          setUploading(true)
+          setError(null)
+          try {
+            const url = await uploadImage('workout-proofs', file, 1080, 0.85)
+            setProof(url)
+          } catch {
+            setError('Não consegui guardar a foto. Tenta de novo.')
+          } finally {
+            setUploading(false)
+          }
+        }}
+      />
     )
   }
 
@@ -118,10 +151,12 @@ function CompletionControls({ day }: { day: ReturnType<typeof todayWeekday> }) {
   }
 
   const submitDone = () => {
+    if (!proof) return
     const c: Completion = {
       status: 'done',
       difficulty,
       note: note.trim() || undefined,
+      proofUrl: proof,
       markedAt: new Date().toISOString(),
     }
     mark(day, c)
@@ -131,29 +166,63 @@ function CompletionControls({ day }: { day: ReturnType<typeof todayWeekday> }) {
 
   return (
     <Card>
-      <Button
-        block
-        onClick={submitDone}
-        className="text-base"
+      {!proof ? (
+        <>
+          <Button
+            block
+            className="text-base"
+            disabled={uploading}
+            onClick={() => setMode('camera')}
+          >
+            {uploading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" /> A guardar foto…
+              </>
+            ) : (
+              <>
+                <Camera size={18} /> Tirar foto e concluir
+              </>
+            )}
+          </Button>
+          <p className="mt-2 text-center text-xs text-muted">
+            Tira uma foto como prova — ex.: o tempo no relógio ou uma selfie no fim. 📸
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="relative mb-3 overflow-hidden rounded-xl">
+            <img src={proof} alt="Prova de treino" className="w-full" />
+            <button
+              onClick={() => setMode('camera')}
+              className="absolute right-2 top-2 rounded-lg bg-black/55 px-2.5 py-1 text-xs font-semibold text-white"
+            >
+              Repetir foto
+            </button>
+          </div>
+          <div className="flex flex-col gap-3">
+            <DifficultyPicker value={difficulty} onChange={setDifficulty} />
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              placeholder="Como foi? (opcional) — pesos, sensações…"
+              className="w-full resize-none rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-accent"
+            />
+          </div>
+          <Button block onClick={submitDone} className="mt-3 text-base">
+            <Check size={18} /> Confirmar treino
+          </Button>
+        </>
+      )}
+
+      {error && <p className="mt-2 text-xs text-red">{error}</p>}
+
+      <button
+        onClick={() => setMode('failing')}
+        className="mt-3 text-xs font-medium text-muted underline decoration-dotted"
       >
-        <Check size={18} /> Treino concluído
-      </Button>
-      <div className="mt-4 flex flex-col gap-3">
-        <DifficultyPicker value={difficulty} onChange={setDifficulty} />
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={2}
-          placeholder="Como foi? (opcional) — pesos, sensações…"
-          className="w-full resize-none rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-accent"
-        />
-        <button
-          onClick={() => setMode('failing')}
-          className="self-start text-xs font-medium text-muted underline decoration-dotted"
-        >
-          Não consegui treinar hoje
-        </button>
-      </div>
+        Não consegui treinar hoje
+      </button>
     </Card>
   )
 }

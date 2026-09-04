@@ -27,7 +27,7 @@ export default function DashboardPage() {
 
   const feedback = sortByWeekday(plan.days)
     .map((d) => ({ day: d.day as Weekday, c: completions[d.day] }))
-    .filter((x) => x.c?.note || x.c?.failReason)
+    .filter((x) => x.c?.note || x.c?.failReason || x.c?.proofUrl)
 
   return (
     <div className="flex flex-col gap-4">
@@ -58,11 +58,11 @@ export default function DashboardPage() {
 
       <div>
         <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <MessageSquareQuote size={16} /> Feedback dela
+          <MessageSquareQuote size={16} /> Provas e feedback
         </p>
         {feedback.length === 0 ? (
-          <EmptyState title="Ainda sem feedback">
-            As notas que a {plan.athleteName} deixar aparecem aqui.
+          <EmptyState title="Ainda sem provas">
+            As fotos e notas que a {plan.athleteName} deixar aparecem aqui.
           </EmptyState>
         ) : (
           <div className="flex flex-col gap-2">
@@ -75,9 +75,20 @@ export default function DashboardPage() {
                   )}
                   {c?.status === 'failed' && <Pill tone="red">Falhado</Pill>}
                 </div>
-                <p className="mt-1 border-l-2 border-accent pl-3 text-sm italic text-ink-soft">
-                  “{c?.note ?? c?.failReason}”
-                </p>
+                {c?.proofUrl && (
+                  <a href={c.proofUrl} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={c.proofUrl}
+                      alt={`Prova de ${WEEKDAY_LABEL[day]}`}
+                      className="mt-2 w-full rounded-xl"
+                    />
+                  </a>
+                )}
+                {(c?.note || c?.failReason) && (
+                  <p className="mt-2 border-l-2 border-accent pl-3 text-sm italic text-ink-soft">
+                    “{c?.note ?? c?.failReason}”
+                  </p>
+                )}
               </Card>
             ))}
           </div>
