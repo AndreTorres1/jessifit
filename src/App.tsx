@@ -52,7 +52,7 @@ function Fallback() {
 }
 
 function TopBar() {
-  const { role, setRole, plan } = useApp()
+  const { role, setRole, plan, saving, online } = useApp()
   const { signOut } = useAuth()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const logout = () => {
@@ -65,6 +65,11 @@ function TopBar() {
         <Logo size={30} />
         <Wordmark className="text-base" />
         <span className="ml-auto flex items-center gap-1 text-xs text-muted">
+          {online && saving && (
+            <span className="mr-1 flex items-center gap-1 text-[0.7rem] text-muted">
+              <Loader2 size={12} className="animate-spin" /> a guardar…
+            </span>
+          )}
           <span className="mr-1 font-[var(--font-mono)]">
             {role === 'athlete' ? plan.athleteName : 'Treinador'}
           </span>

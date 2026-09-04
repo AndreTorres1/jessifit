@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { AlertTriangle, Coffee, Check, Sparkles, Copy } from 'lucide-react'
+import { AlertTriangle, Coffee, Check, Sparkles, Copy, Eraser } from 'lucide-react'
 import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
 import { parseWorkouts, setsRepsLabel } from '@/engine/parseWorkouts'
@@ -59,16 +59,26 @@ export default function ImportPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <Eyebrow>Semana {editing ? plan.weekNumber : plan.weekNumber + 1}</Eyebrow>
-        <h1 className="text-2xl font-extrabold">
-          {editing ? 'Editar semana' : 'Importar treino'}
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          {editing
-            ? 'Ajusta o plano desta semana. As marcações já feitas são mantidas.'
-            : 'Escreve ou cola o plano em texto. A app estrutura-o — confirma antes de enviar.'}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <Eyebrow>Semana {editing ? plan.weekNumber : plan.weekNumber + 1}</Eyebrow>
+          <h1 className="text-2xl font-extrabold">
+            {editing ? 'Editar semana' : 'Importar treino'}
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            {editing
+              ? 'Ajusta o plano desta semana. As marcações já feitas são mantidas.'
+              : 'Escreve ou cola o plano em texto. A app estrutura-o — confirma antes de enviar.'}
+          </p>
+        </div>
+        {hasContent && (
+          <button
+            onClick={() => setText('')}
+            className="mt-1 inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted hover:bg-surface-2"
+          >
+            <Eraser size={14} /> Limpar
+          </button>
+        )}
       </div>
 
       <div className="relative">

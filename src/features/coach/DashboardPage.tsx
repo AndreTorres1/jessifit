@@ -1,3 +1,4 @@
+import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Flame,
@@ -6,9 +7,9 @@ import {
   Pencil,
   Share2,
   History,
+  ChevronDown,
   type LucideIcon,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL, type Weekday } from '@/types'
 import { sortByWeekday } from '@/lib/format'
@@ -18,6 +19,7 @@ import { useToast } from '@/components/Toast'
 import { buildWeekMessage, shareText } from '@/lib/share'
 import { WeekGrid } from '../shared/WeekGrid'
 import { HistoryList } from '../shared/HistoryList'
+import { PlanSummary } from '../shared/PlanSummary'
 import { weekProgress, perfectWeekStreak } from '../shared/stats'
 
 function SectionTitle({ icon: Icon, children }: { icon?: LucideIcon; children: ReactNode }) {
@@ -36,6 +38,7 @@ export default function DashboardPage() {
   const { done, total } = weekProgress(plan.days, completions)
   const streak = perfectWeekStreak({ done, total }, history)
   const hasPlan = Boolean(plan.rawText) && plan.days.length > 0
+  const [showPlan, setShowPlan] = useState(false)
 
   const share = async () => {
     const msg = buildWeekMessage(plan.athleteName, plan.weekNumber, plan.days)
@@ -88,18 +91,37 @@ export default function DashboardPage() {
             <Plus size={18} /> Criar próxima semana
           </Button>
           {hasPlan && (
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                block
-                onClick={() => navigate('/importar', { state: { edit: true } })}
+            <>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  block
+                  onClick={() => navigate('/importar', { state: { edit: true } })}
+                >
+                  <Pencil size={16} /> Editar
+                </Button>
+                <Button variant="soft" block onClick={share}>
+                  <Share2 size={16} /> Partilhar
+                </Button>
+              </div>
+              <button
+                onClick={() => setShowPlan((v) => !v)}
+                className="mt-1 flex items-center justify-center gap-1 text-xs font-medium text-muted"
+                aria-expanded={showPlan}
               >
-                <Pencil size={16} /> Editar
-              </Button>
-              <Button variant="soft" block onClick={share}>
-                <Share2 size={16} /> Partilhar
-              </Button>
-            </div>
+                {showPlan ? 'Ocultar plano' : 'Ver plano da semana'}
+                <ChevronDown
+                  size={14}
+                  className="transition-transform"
+                  style={{ transform: showPlan ? 'rotate(180deg)' : undefined }}
+                />
+              </button>
+              {showPlan && (
+                <div className="mt-1">
+                  <PlanSummary days={plan.days} />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -62,6 +62,8 @@ interface AppState extends Shared {
 interface AppContextValue extends AppState {
   loading: boolean
   accessDenied: boolean
+  saving: boolean
+  online: boolean
   setRole: (role: Role | null) => void
   setAthleteName: (name: string) => void
   publishPlan: (days: WorkoutDay[], rawText: string) => void
@@ -141,6 +143,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => (online ? onlineInitial : loadDemo()))
   const [dataLoaded, setDataLoaded] = useState(!online)
   const [accessDenied, setAccessDenied] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const revRef = useRef<string>('') // última revisão que nós próprios gravámos
   const saveTimer = useRef<ReturnType<typeof setTimeout>>()
@@ -202,8 +205,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       _rev: rev,
     }
     clearTimeout(saveTimer.current)
+    setSaving(true)
     saveTimer.current = setTimeout(() => {
-      saveShared(payload).catch(() => {})
+      saveShared(payload)
+        .catch(() => {})
+        .finally(() => setSaving(false))
     }, 350)
   }
 
@@ -221,6 +227,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       role,
       loading,
       accessDenied,
+      saving,
+      online,
       setRole: (r) => {
         if (!online) setState((s) => ({ ...s, role: r }))
       },
@@ -263,7 +271,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, auth.profile, auth.loading, auth.session, dataLoaded, accessDenied])
+  }, [state, auth.profile, auth.loading, auth.session, dataLoaded, accessDenied, saving])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }
