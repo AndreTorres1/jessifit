@@ -3,6 +3,7 @@ import { Flame, Check, X, Coffee, CalendarX, Camera, Loader2, MessageCircle } fr
 import { useApp, type Completion } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
 import { todayWeekday } from '@/lib/format'
+import { matchKey } from '@/lib/text'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { ProgressRing } from '@/components/ProgressRing'
 import { RestTimer } from '@/components/RestTimer'
@@ -228,12 +229,20 @@ function CompletionControls({ day }: { day: ReturnType<typeof todayWeekday> }) {
 }
 
 export default function TodayPage() {
-  const { plan, completions } = useApp()
+  const { plan, completions, logs, addLog } = useApp()
+  const { show } = useToast()
   const today = todayWeekday()
   const day = plan.days.find((d) => d.day === today)
   const streak = countDone(completions)
   const { done, total } = weekProgress(plan.days, completions)
   const weekComplete = total > 0 && done === total
+
+  const lastLogFor = (name: string): string | undefined => {
+    const key = matchKey(name)
+    const last = [...logs].reverse().find((l) => l.key === key)
+    if (!last) return undefined
+    return [last.weight, last.reps && `${last.reps} reps`].filter(Boolean).join(' · ')
+  }
 
   // check-off por exercício durante o treino (apenas ajuda visual, não persiste)
   const [checkedEx, setCheckedEx] = useState<Set<number>>(new Set())
@@ -334,7 +343,16 @@ export default function TodayPage() {
                   : `${day.exercises.length} ${day.exercises.length === 1 ? 'exercício' : 'exercícios'}`}
               </Pill>
             </div>
-            <ExerciseList items={day.exercises} checked={checkedEx} onToggle={toggleEx} />
+            <ExerciseList
+              items={day.exercises}
+              checked={checkedEx}
+              onToggle={toggleEx}
+              lastLogFor={lastLogFor}
+              onLog={(name, weight, reps) => {
+                addLog(name, weight, reps)
+                show('Peso registado 💪')
+              }}
+            />
           </Card>
           <CompletionControls day={today} />
           <RestTimer />

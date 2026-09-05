@@ -8,6 +8,7 @@ import {
   Share2,
   History,
   ChevronDown,
+  TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
 import { useApp } from '@/data/store'
@@ -20,6 +21,7 @@ import { buildWeekMessage, shareText } from '@/lib/share'
 import { WeekGrid } from '../shared/WeekGrid'
 import { HistoryList } from '../shared/HistoryList'
 import { PlanSummary } from '../shared/PlanSummary'
+import { WeightProgress } from '../shared/WeightProgress'
 import { weekProgress, perfectWeekStreak } from '../shared/stats'
 
 function SectionTitle({ icon: Icon, children }: { icon?: LucideIcon; children: ReactNode }) {
@@ -32,7 +34,7 @@ function SectionTitle({ icon: Icon, children }: { icon?: LucideIcon; children: R
 }
 
 export default function DashboardPage() {
-  const { plan, completions, history } = useApp()
+  const { plan, completions, history, logs } = useApp()
   const { show } = useToast()
   const navigate = useNavigate()
   const { done, total } = weekProgress(plan.days, completions)
@@ -163,6 +165,14 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Registo de pesos */}
+      {logs.length > 0 && (
+        <div>
+          <SectionTitle icon={TrendingUp}>Registo de pesos</SectionTitle>
+          <WeightProgress logs={logs} />
+        </div>
+      )}
 
       {/* Semanas anteriores */}
       {history.length > 0 && (

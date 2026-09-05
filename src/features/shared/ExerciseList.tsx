@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlayCircle, ExternalLink, X, Info, Check } from 'lucide-react'
+import { PlayCircle, ExternalLink, X, Info, Check, Plus } from 'lucide-react'
 import type { Exercise, ExerciseItem } from '@/types'
 import { setsRepsLabel } from '@/engine/parseWorkouts'
 import { youtubeId, demoSearchUrl } from '@/lib/text'
@@ -95,16 +95,31 @@ export function ExerciseRow({
   item,
   checked,
   onToggle,
+  lastLog,
+  onLog,
 }: {
   item: ExerciseItem
   checked?: boolean
   onToggle?: () => void
+  lastLog?: string
+  onLog?: (weight: string, reps: string) => void
 }) {
   const { findExercise } = useApp()
   const [open, setOpen] = useState(false)
+  const [logging, setLogging] = useState(false)
+  const [w, setW] = useState('')
+  const [r, setR] = useState('')
   const exercise = findExercise(item.name)
   const hasDemo = Boolean(exercise?.videoUrl || exercise?.imageDataUrl)
   const sr = setsRepsLabel(item)
+
+  const saveLog = () => {
+    if (!onLog || (!w.trim() && !r.trim())) return
+    onLog(w, r)
+    setW('')
+    setR('')
+    setLogging(false)
+  }
 
   return (
     <>
@@ -153,6 +168,46 @@ export function ExerciseRow({
           )}
         </div>
       </div>
+      {onLog && (
+        <div className="-mt-1 pb-2.5 pl-9">
+          {logging ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={w}
+                onChange={(e) => setW(e.target.value)}
+                placeholder="Peso (ex.: 40kg)"
+                className="w-32 rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
+              />
+              <input
+                value={r}
+                onChange={(e) => setR(e.target.value)}
+                placeholder="Reps"
+                className="w-16 rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
+              />
+              <button
+                onClick={saveLog}
+                className="rounded-lg bg-accent-wash px-2.5 py-1.5 text-xs font-semibold text-accent-deep"
+              >
+                Guardar
+              </button>
+              <button
+                onClick={() => setLogging(false)}
+                className="text-xs text-muted"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setLogging(true)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-accent-deep"
+            >
+              <Plus size={12} /> Registar peso
+              {lastLog && <span className="text-muted">· último: {lastLog}</span>}
+            </button>
+          )}
+        </div>
+      )}
       {open && (
         <DemoSheet name={item.name} exercise={exercise} onClose={() => setOpen(false)} />
       )}
@@ -164,10 +219,14 @@ export function ExerciseList({
   items,
   checked,
   onToggle,
+  lastLogFor,
+  onLog,
 }: {
   items: ExerciseItem[]
   checked?: Set<number>
   onToggle?: (index: number) => void
+  lastLogFor?: (name: string) => string | undefined
+  onLog?: (name: string, weight: string, reps: string) => void
 }) {
   return (
     <div className="divide-y divide-line">
@@ -177,6 +236,8 @@ export function ExerciseList({
           item={it}
           checked={checked?.has(i)}
           onToggle={onToggle ? () => onToggle(i) : undefined}
+          lastLog={lastLogFor?.(it.name)}
+          onLog={onLog ? (weight, reps) => onLog(it.name, weight, reps) : undefined}
         />
       ))}
     </div>

@@ -77,6 +77,17 @@ export interface Exercise {
   note: string | null
 }
 
+/** Registo de peso/reps feito num exercício, para acompanhar progressão. */
+export interface ExerciseLog {
+  id: string
+  /** Chave normalizada do nome do exercício (liga entradas do mesmo exercício). */
+  key: string
+  name: string
+  date: string // ISO
+  weight?: string
+  reps?: string
+}
+
 export type WorkoutStatus = 'done' | 'failed' | 'pending'
 
 export interface WorkoutDay {

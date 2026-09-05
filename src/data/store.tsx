@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Exercise, Role, Weekday, WorkoutDay } from '@/types'
+import type { Exercise, ExerciseLog, Role, Weekday, WorkoutDay } from '@/types'
 import { matchKey } from '@/lib/text'
 import { loadJSON, saveJSON } from '@/lib/storage'
 import { isDemoMode } from '@/lib/supabase'
@@ -55,6 +55,7 @@ interface Shared {
   completions: Partial<Record<Weekday, Completion>>
   exercises: Exercise[]
   history: WeekSummary[]
+  logs: ExerciseLog[]
 }
 
 interface AppState extends Shared {
@@ -75,6 +76,8 @@ interface AppContextValue extends AppState {
   findExercise: (name: string) => Exercise | undefined
   saveExercise: (exercise: Exercise) => void
   deleteExercise: (id: string) => void
+  /** Regista peso/reps feitos num exercício. */
+  addLog: (name: string, weight?: string, reps?: string) => void
   reset: () => void
 }
 
@@ -89,6 +92,7 @@ const onlineInitial: AppState = {
   completions: {},
   exercises: [],
   history: [],
+  logs: [],
 }
 
 const demoInitial: AppState = {
@@ -107,6 +111,12 @@ const demoInitial: AppState = {
   history: [
     { weekNumber: 2, done: 3, total: 3, endedAt: '2026-08-17T00:00:00.000Z' },
     { weekNumber: 1, done: 2, total: 3, endedAt: '2026-08-10T00:00:00.000Z' },
+  ],
+  logs: [
+    { id: 'l1', key: 'agachamento', name: 'Agachamento', date: '2026-08-10T00:00:00.000Z', weight: '50kg', reps: '8' },
+    { id: 'l2', key: 'agachamento', name: 'Agachamento', date: '2026-08-17T00:00:00.000Z', weight: '55kg', reps: '8' },
+    { id: 'l3', key: 'agachamento', name: 'Agachamento', date: '2026-08-24T00:00:00.000Z', weight: '60kg', reps: '8' },
+    { id: 'l4', key: 'supino', name: 'Supino', date: '2026-08-24T00:00:00.000Z', weight: '30kg', reps: '10' },
   ],
 }
 
@@ -135,6 +145,7 @@ function applyShared(base: AppState, data: SharedData): AppState {
     completions: (data.completions as AppState['completions']) ?? base.completions,
     exercises: (data.exercises as Exercise[]) ?? base.exercises,
     history: (data.history as WeekSummary[]) ?? base.history,
+    logs: (data.logs as ExerciseLog[]) ?? base.logs,
   }
 }
 
@@ -204,6 +215,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       completions: next.completions,
       exercises: next.exercises,
       history: next.history,
+      logs: next.logs,
       _rev: rev,
     }
     clearTimeout(saveTimer.current)
@@ -276,6 +288,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
       deleteExercise: (id) =>
         commit({ ...state, exercises: state.exercises.filter((e) => e.id !== id) }),
+      addLog: (name, weight, reps) => {
+        const entry: ExerciseLog = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          key: matchKey(name),
+          name,
+          date: new Date().toISOString(),
+          weight: weight?.trim() || undefined,
+          reps: reps?.trim() || undefined,
+        }
+        commit({ ...state, logs: [...state.logs, entry].slice(-500) })
+      },
       reset: () => {
         if (online) commit(onlineInitial)
         else setState(demoInitial)
