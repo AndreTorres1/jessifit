@@ -20,6 +20,9 @@ export interface Challenge {
   weeklyGoal: number
   ownerId: string
   createdAt: string
+  /** Datas opcionais de início e fim (YYYY-MM-DD). */
+  startsOn?: string | null
+  endsOn?: string | null
 }
 
 /** Um participante do desafio + o seu estado de treino. */
@@ -38,6 +41,8 @@ interface ChallengeRow {
   weekly_goal: number
   owner_id: string
   created_at: string
+  starts_on?: string | null
+  ends_on?: string | null
 }
 
 interface MemberRow {
@@ -57,6 +62,8 @@ function toChallenge(r: ChallengeRow): Challenge {
     weeklyGoal: r.weekly_goal,
     ownerId: r.owner_id,
     createdAt: r.created_at,
+    startsOn: r.starts_on ?? null,
+    endsOn: r.ends_on ?? null,
   }
 }
 
@@ -111,13 +118,25 @@ export async function joinChallenge(code: string): Promise<JoinResult> {
 
 export async function updateChallenge(
   id: string,
-  patch: { name?: string; weeklyGoal?: number },
+  patch: { name?: string; weeklyGoal?: number; startsOn?: string | null; endsOn?: string | null },
 ): Promise<void> {
   if (!supabase) return
   const row: Record<string, unknown> = {}
   if (patch.name !== undefined) row.name = patch.name
   if (patch.weeklyGoal !== undefined) row.weekly_goal = patch.weeklyGoal
+  if (patch.startsOn !== undefined) row.starts_on = patch.startsOn
+  if (patch.endsOn !== undefined) row.ends_on = patch.endsOn
   const { error } = await supabase.from('challenges').update(row).eq('id', id)
+  if (error) throw error
+}
+
+/** Remove um participante do desafio (só o organizador). */
+export async function removeMember(challengeId: string, userId: string): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase.rpc('remove_member', {
+    p_challenge: challengeId,
+    p_user: userId,
+  })
   if (error) throw error
 }
 

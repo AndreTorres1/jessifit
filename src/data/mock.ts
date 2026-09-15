@@ -82,6 +82,8 @@ export const demoChallenge: Challenge = {
   weeklyGoal: 4,
   ownerId: 'demo-me',
   createdAt: '2026-09-01T00:00:00.000Z',
+  startsOn: '2026-09-01',
+  endsOn: '2026-09-30',
 }
 
 const now = new Date().toISOString()

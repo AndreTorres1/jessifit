@@ -15,6 +15,7 @@ import {
   joinChallenge,
   listMyChallenges,
   loadMembers,
+  removeMember,
   subscribeMembers,
   updateChallenge,
   type Challenge,
@@ -35,8 +36,16 @@ interface ChallengeValue {
   create: (name: string, goal: number) => Promise<Challenge | null>
   join: (code: string) => Promise<{ ok: boolean; reason?: 'not_found' | 'error' }>
   switchTo: (id: string) => void
-  update: (patch: { name?: string; weeklyGoal?: number }) => Promise<void>
+  update: (patch: ChallengePatch) => Promise<void>
+  remove: (userId: string) => Promise<void>
   refreshMembers: () => Promise<void>
+}
+
+type ChallengePatch = {
+  name?: string
+  weeklyGoal?: number
+  startsOn?: string | null
+  endsOn?: string | null
 }
 
 const ChallengeContext = createContext<ChallengeValue | null>(null)
@@ -168,17 +177,12 @@ export function ChallengeProvider({ children }: { children: ReactNode }) {
       update: async (patch) => {
         if (!current) return
         await updateChallenge(current.id, patch)
-        setChallenges((cs) =>
-          cs.map((c) =>
-            c.id === current.id
-              ? {
-                  ...c,
-                  name: patch.name ?? c.name,
-                  weeklyGoal: patch.weeklyGoal ?? c.weeklyGoal,
-                }
-              : c,
-          ),
-        )
+        setChallenges((cs) => cs.map((c) => (c.id === current.id ? { ...c, ...patch } : c)))
+      },
+      remove: async (userId) => {
+        if (!current) return
+        await removeMember(current.id, userId)
+        setMembers((ms) => ms.filter((m) => m.userId !== userId))
       },
       refreshMembers,
     }),

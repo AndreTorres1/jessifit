@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Trophy, Target, Flame, Medal } from 'lucide-react'
+import { Trophy, Target, Flame, Medal, PartyPopper } from 'lucide-react'
 import { useChallenge } from '@/data/challenge'
 import { Card, Pill, Eyebrow, EmptyState } from '@/components/ui'
+import { challengeStatus } from '@/lib/challengeStatus'
 import { scoreMember, type MemberScore } from '../shared/stats'
 import RunningBoard from './RunningBoard'
 
@@ -34,6 +35,8 @@ export default function LeaderboardPage() {
 
   const me = rows.find((r) => r.isMe)
   const metCount = rows.filter((r) => r.weekGoalMet).length
+  const ended = current ? challengeStatus(current).state === 'ended' : false
+  const winner = ended && rows.length > 0 ? rows[0] : null
 
   return (
     <div className="flex flex-col gap-5">
@@ -41,6 +44,22 @@ export default function LeaderboardPage() {
         <Eyebrow>{current?.name ?? 'Desafio'}</Eyebrow>
         <h1 className="text-2xl font-extrabold">Ranking</h1>
       </div>
+
+      {winner && (
+        <Card className="flex items-center gap-3 border-accent/50">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-accent-wash text-accent-deep">
+            <PartyPopper size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-accent-deep">
+              Desafio terminado
+            </p>
+            <p className="font-[var(--font-display)] text-lg font-bold">
+              🏆 Vencedor: {winner.name}
+            </p>
+          </div>
+        </Card>
+      )}
 
       <div className="flex rounded-xl bg-surface-2 p-1 text-sm font-semibold">
         {([['points', 'Pontos'], ['run', 'Corrida']] as const).map(([v, label]) => (

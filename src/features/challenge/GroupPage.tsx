@@ -10,24 +10,43 @@ import {
   Plus,
   Loader2,
   ArrowLeftRight,
+  CalendarRange,
+  ChevronRight,
 } from 'lucide-react'
 import { useChallenge } from '@/data/challenge'
+import type { Member } from '@/data/remote'
 import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { useToast } from '@/components/Toast'
 import { shareText } from '@/lib/share'
+import { challengeStatus } from '@/lib/challengeStatus'
+import { MemberDetail } from './MemberDetail'
 
 const GOALS = [3, 4, 5, 6]
 
 export default function GroupPage() {
-  const { current, members, myUserId, isOwner, challenges, switchTo, update } = useChallenge()
+  const { current, members, myUserId, isOwner, challenges, switchTo, update, remove } =
+    useChallenge()
   const { show } = useToast()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(current?.name ?? '')
   const [goal, setGoal] = useState(current?.weeklyGoal ?? 4)
+  const [startsOn, setStartsOn] = useState(current?.startsOn ?? '')
+  const [endsOn, setEndsOn] = useState(current?.endsOn ?? '')
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [selected, setSelected] = useState<Member | null>(null)
 
   if (!current) return null
+
+  const status = challengeStatus(current)
+  const statusLabel =
+    status.state === 'ended'
+      ? 'Terminado'
+      : status.state === 'upcoming'
+        ? `Começa em ${status.startsInDays}d`
+        : status.endsInDays !== undefined
+          ? `Faltam ${Math.max(0, status.endsInDays)}d`
+          : 'A decorrer'
 
   const appUrl = `${window.location.origin}${import.meta.env.BASE_URL}`
   const invite = `Junta-te ao meu desafio de treino "${current.name}" na JessiFit! 🏆\n\nCódigo: ${current.code}\n${appUrl}`
@@ -52,7 +71,12 @@ export default function GroupPage() {
   const saveSettings = async () => {
     setBusy(true)
     try {
-      await update({ name: name.trim() || current.name, weeklyGoal: goal })
+      await update({
+        name: name.trim() || current.name,
+        weeklyGoal: goal,
+        startsOn: startsOn || null,
+        endsOn: endsOn || null,
+      })
       show('Desafio atualizado')
       setEditing(false)
     } catch {
@@ -62,11 +86,28 @@ export default function GroupPage() {
     }
   }
 
+  const handleRemove = async (m: Member) => {
+    try {
+      await remove(m.userId)
+      show('Participante removido')
+      setSelected(null)
+    } catch {
+      show('Não consegui remover')
+    }
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div>
         <Eyebrow>Grupo</Eyebrow>
         <h1 className="text-2xl font-extrabold">{current.name}</h1>
+        {(current.startsOn || current.endsOn) && (
+          <div className="mt-1.5">
+            <Pill tone={status.state === 'ended' ? 'red' : status.state === 'upcoming' ? 'muted' : 'accent'}>
+              <CalendarRange size={12} /> {statusLabel}
+            </Pill>
+          </div>
+        )}
       </div>
 
       {/* Código de convite */}
@@ -102,6 +143,8 @@ export default function GroupPage() {
               onClick={() => {
                 setName(current.name)
                 setGoal(current.weeklyGoal)
+                setStartsOn(current.startsOn ?? '')
+                setEndsOn(current.endsOn ?? '')
                 setEditing(true)
               }}
               className="inline-flex items-center gap-1 text-xs font-medium text-muted"
@@ -136,6 +179,26 @@ export default function GroupPage() {
                 </button>
               ))}
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+                Início
+                <input
+                  type="date"
+                  value={startsOn ?? ''}
+                  onChange={(e) => setStartsOn(e.target.value)}
+                  className="rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+                Fim
+                <input
+                  type="date"
+                  value={endsOn ?? ''}
+                  onChange={(e) => setEndsOn(e.target.value)}
+                  className="rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                />
+              </label>
+            </div>
             <div className="flex gap-2">
               <Button variant="ghost" block onClick={() => setEditing(false)}>
                 Cancelar
@@ -165,8 +228,13 @@ export default function GroupPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {members.map((m) => (
-              <Card key={m.userId} className="flex items-center gap-3 py-3">
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-accent-wash text-sm font-bold text-accent-deep">
+              <button
+                key={m.userId}
+                onClick={() => setSelected(m)}
+                className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3 text-left transition active:scale-[0.99]"
+                style={{ boxShadow: 'var(--shadow)' }}
+              >
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-wash text-sm font-bold text-accent-deep">
                   {(m.displayName || '?').charAt(0).toUpperCase()}
                 </div>
                 <span className="flex-1 truncate font-medium">
@@ -180,7 +248,8 @@ export default function GroupPage() {
                     <Crown size={12} /> Organizador
                   </Pill>
                 )}
-              </Card>
+                <ChevronRight size={16} className="shrink-0 text-muted" />
+              </button>
             ))}
           </div>
         )}
@@ -211,6 +280,16 @@ export default function GroupPage() {
           </button>
         </div>
       </div>
+
+      {selected && (
+        <MemberDetail
+          member={selected}
+          goal={current.weeklyGoal}
+          canRemove={isOwner && selected.userId !== myUserId}
+          onRemove={() => handleRemove(selected)}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   )
 }
