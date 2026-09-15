@@ -1,11 +1,17 @@
-import { useState } from 'react'
-import { X, Timer } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { X, Timer, Upload, Loader2, Check } from 'lucide-react'
 import { useApp } from '@/data/store'
 import { useToast } from '@/components/Toast'
 import { useEscapeKey } from '@/lib/hooks'
 import { Button } from '@/components/ui'
-import { parseDistance, parseDuration, formatPace, paceSeconds } from '@/lib/run'
+import { parseDistance, parseDuration, formatDuration, formatPace, paceSeconds } from '@/lib/run'
+import { parseActivityFile } from '@/lib/activityFile'
 import type { RunLog } from '@/types'
+
+/** Mostra um número de km sem casas decimais desnecessárias. */
+function niceKm(km: number): string {
+  return String(Number(km.toFixed(2)))
+}
 
 const SOURCES: { value: NonNullable<RunLog['source']>; label: string }[] = [
   { value: 'strava', label: 'Strava' },
@@ -23,15 +29,37 @@ export function RunForm({ onClose }: { onClose: () => void }) {
   const [source, setSource] = useState<NonNullable<RunLog['source']>>('strava')
   const [url, setUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [parsing, setParsing] = useState(false)
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [parsedDate, setParsedDate] = useState<string | undefined>(undefined)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const km = parseDistance(distance)
   const seconds = parseDuration(time)
   const pace = km && seconds ? paceSeconds({ distanceKm: km, seconds }) : 0
 
+  const onFile = async (file: File | undefined) => {
+    if (!file) return
+    setParsing(true)
+    setError(null)
+    setFileName(null)
+    const res = await parseActivityFile(file)
+    setParsing(false)
+    if (!res.ok) {
+      setError(res.error)
+      return
+    }
+    setDistance(niceKm(res.distanceKm))
+    setTime(formatDuration(res.seconds))
+    setParsedDate(res.date)
+    setSource('garmin')
+    setFileName(file.name)
+  }
+
   const save = () => {
     if (!km) return setError('Distância inválida (ex.: 10 ou 10,5).')
     if (!seconds) return setError('Tempo inválido (ex.: 42:28 ou 1:02:56).')
-    addRun(km, seconds, { source, url })
+    addRun(km, seconds, { source, url, date: parsedDate })
     show('Corrida registada 🏃')
     onClose()
   }
@@ -62,6 +90,41 @@ export function RunForm({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex flex-col gap-3">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".fit,.tcx,.gpx"
+            className="hidden"
+            onChange={(e) => {
+              onFile(e.target.files?.[0])
+              e.target.value = ''
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={parsing}
+            className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-line bg-surface-2 py-3 text-sm font-semibold text-ink-soft transition hover:border-accent"
+          >
+            {parsing ? (
+              <>
+                <Loader2 size={16} className="animate-spin" /> A ler ficheiro…
+              </>
+            ) : fileName ? (
+              <>
+                <Check size={16} className="text-accent-deep" /> {fileName}
+              </>
+            ) : (
+              <>
+                <Upload size={16} /> Carregar ficheiro do Garmin (.fit, .tcx, .gpx)
+              </>
+            )}
+          </button>
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span className="h-px flex-1 bg-line" /> ou mete à mão{' '}
+            <span className="h-px flex-1 bg-line" />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
               Distância (km)
