@@ -7,6 +7,7 @@ export interface SharedData {
   exercises?: unknown
   history?: unknown
   logs?: unknown
+  runs?: unknown
   /** Marca de revisão para ignorar ecos das nossas próprias gravações. */
   _rev?: string
 }

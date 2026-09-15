@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Trophy, Target, Flame, Medal } from 'lucide-react'
 import { useChallenge } from '@/data/challenge'
 import { Card, Pill, Eyebrow, EmptyState } from '@/components/ui'
 import { scoreMember, type MemberScore } from '../shared/stats'
+import RunningBoard from './RunningBoard'
 
 interface Row extends MemberScore {
   userId: string
@@ -17,6 +18,7 @@ const MEDAL = ['#F5C542', '#B8C0CC', '#CD8B5B'] // ouro, prata, bronze
 export default function LeaderboardPage() {
   const { current, members, myUserId } = useChallenge()
   const goal = current?.weeklyGoal ?? 4
+  const [view, setView] = useState<'points' | 'run'>('points')
 
   const rows = useMemo<Row[]>(() => {
     const scored = members.map((m) => ({
@@ -40,6 +42,40 @@ export default function LeaderboardPage() {
         <h1 className="text-2xl font-extrabold">Ranking</h1>
       </div>
 
+      <div className="flex rounded-xl bg-surface-2 p-1 text-sm font-semibold">
+        {([['points', 'Pontos'], ['run', 'Corrida']] as const).map(([v, label]) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`flex-1 rounded-lg py-2 transition ${
+              view === v ? 'bg-surface text-ink' : 'text-muted'
+            }`}
+            style={view === v ? { boxShadow: 'var(--shadow)' } : undefined}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'run' && <RunningBoard />}
+      {view === 'points' && <PointsBoard rows={rows} goal={goal} me={me} metCount={metCount} />}
+    </div>
+  )
+}
+
+function PointsBoard({
+  rows,
+  goal,
+  me,
+  metCount,
+}: {
+  rows: Row[]
+  goal: number
+  me: Row | undefined
+  metCount: number
+}) {
+  return (
+    <>
       {/* Resumo */}
       <Card>
         <div className="flex items-center gap-4">
@@ -126,6 +162,6 @@ export default function LeaderboardPage() {
           {metCount} de {rows.length} já cumpriram a meta desta semana. 💪
         </p>
       )}
-    </div>
+    </>
   )
 }

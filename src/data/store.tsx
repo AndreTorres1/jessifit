@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Exercise, ExerciseLog, Role, Weekday, WorkoutDay } from '@/types'
+import type { Exercise, ExerciseLog, Role, RunLog, Weekday, WorkoutDay } from '@/types'
 import { matchKey } from '@/lib/text'
 import { loadJSON, saveJSON } from '@/lib/storage'
 import { isDemoMode } from '@/lib/supabase'
@@ -54,6 +54,8 @@ interface Shared {
   exercises: Exercise[]
   history: WeekSummary[]
   logs: ExerciseLog[]
+  /** Corridas registadas, para o desafio de corrida. */
+  runs: RunLog[]
 }
 
 interface AppState extends Shared {
@@ -75,6 +77,9 @@ interface AppContextValue extends AppState {
   deleteExercise: (id: string) => void
   /** Regista peso/reps feitos num exercício. */
   addLog: (name: string, weight?: string, reps?: string) => void
+  /** Regista uma corrida (distância em km + tempo em segundos). */
+  addRun: (distanceKm: number, seconds: number, opts?: Partial<RunLog>) => void
+  deleteRun: (id: string) => void
   reset: () => void
 }
 
@@ -90,6 +95,7 @@ const onlineInitial: AppState = {
   exercises: [],
   history: [],
   logs: [],
+  runs: [],
 }
 
 const demoInitial: AppState = {
@@ -115,6 +121,10 @@ const demoInitial: AppState = {
     { id: 'l2', key: 'agachamento', name: 'Agachamento', date: '2026-08-17T00:00:00.000Z', weight: '55kg', reps: '8' },
     { id: 'l3', key: 'agachamento', name: 'Agachamento', date: '2026-08-24T00:00:00.000Z', weight: '60kg', reps: '8' },
     { id: 'l4', key: 'supino', name: 'Supino', date: '2026-08-24T00:00:00.000Z', weight: '30kg', reps: '10' },
+  ],
+  runs: [
+    { id: 'run1', date: '2026-08-24T09:00:00.000Z', distanceKm: 10, seconds: 3300, source: 'strava' },
+    { id: 'run2', date: '2026-09-07T09:00:00.000Z', distanceKm: 10, seconds: 3090, source: 'strava' },
   ],
 }
 
@@ -145,6 +155,7 @@ function applyShared(base: AppState, data: SharedData): AppState {
     exercises: (data.exercises as Exercise[]) ?? base.exercises,
     history: (data.history as WeekSummary[]) ?? base.history,
     logs: (data.logs as ExerciseLog[]) ?? base.logs,
+    runs: (data.runs as RunLog[]) ?? base.runs,
   }
 }
 
@@ -213,6 +224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       exercises: next.exercises,
       history: next.history,
       logs: next.logs,
+      runs: next.runs,
       _rev: rev,
     }
     clearTimeout(saveTimer.current)
@@ -295,6 +307,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         commit({ ...state, logs: [...state.logs, entry].slice(-500) })
       },
+      addRun: (distanceKm, seconds, opts) => {
+        const entry: RunLog = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          date: opts?.date ?? new Date().toISOString(),
+          distanceKm,
+          seconds,
+          source: opts?.source ?? 'manual',
+          url: opts?.url?.trim() || undefined,
+          note: opts?.note?.trim() || undefined,
+        }
+        commit({ ...state, runs: [...state.runs, entry].slice(-200) })
+      },
+      deleteRun: (id) => commit({ ...state, runs: state.runs.filter((r) => r.id !== id) }),
       reset: () => {
         if (online) commit({ ...onlineInitial, plan: { ...emptyPlan, athleteName: myName } })
         else setState(demoInitial)

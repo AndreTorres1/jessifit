@@ -103,6 +103,10 @@ export const demoMembers: Member[] = [
         { weekNumber: 2, done: 4, total: 4, endedAt: '2026-09-07T00:00:00.000Z', points: 17 },
         { weekNumber: 1, done: 3, total: 4, endedAt: '2026-08-31T00:00:00.000Z', points: 9 },
       ],
+      runs: [
+        { id: 'e1', date: '2026-08-24T09:00:00.000Z', distanceKm: 10, seconds: 3300, source: 'strava' },
+        { id: 'e2', date: '2026-09-07T09:00:00.000Z', distanceKm: 10, seconds: 3090, source: 'strava' },
+      ],
     },
   },
   {
@@ -121,6 +125,10 @@ export const demoMembers: Member[] = [
         { weekNumber: 2, done: 4, total: 4, endedAt: '2026-09-07T00:00:00.000Z', points: 21 },
         { weekNumber: 1, done: 4, total: 4, endedAt: '2026-08-31T00:00:00.000Z', points: 18 },
       ],
+      runs: [
+        { id: 'r1', date: '2026-08-24T09:00:00.000Z', distanceKm: 8, seconds: 2640, source: 'garmin' },
+        { id: 'r2', date: '2026-09-07T09:00:00.000Z', distanceKm: 8, seconds: 2400, source: 'garmin' },
+      ],
     },
   },
   {
@@ -136,6 +144,10 @@ export const demoMembers: Member[] = [
       history: [
         { weekNumber: 2, done: 3, total: 4, endedAt: '2026-09-07T00:00:00.000Z', points: 10 },
       ],
+      runs: [
+        { id: 'm1', date: '2026-08-24T09:00:00.000Z', distanceKm: 10, seconds: 2620, source: 'strava' },
+        { id: 'm2', date: '2026-09-07T09:00:00.000Z', distanceKm: 10, seconds: 2548, source: 'strava' },
+      ],
     },
   },
   {
@@ -148,6 +160,10 @@ export const demoMembers: Member[] = [
         segunda: { status: 'done', difficulty: 2, markedAt: now },
       },
       history: [],
+      runs: [
+        { id: 't1', date: '2026-08-24T09:00:00.000Z', distanceKm: 10, seconds: 3900, source: 'strava' },
+        { id: 't2', date: '2026-09-07T09:00:00.000Z', distanceKm: 10, seconds: 3776, source: 'strava' },
+      ],
     },
   },
 ]

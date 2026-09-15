@@ -99,6 +99,21 @@ export interface WorkoutDay {
   exercises: ExerciseItem[]
 }
 
+/** Registo de uma corrida, para o desafio de corrida (evolução de tempo/pace). */
+export interface RunLog {
+  id: string
+  date: string // ISO
+  /** Distância em quilómetros. */
+  distanceKm: number
+  /** Tempo total em segundos. */
+  seconds: number
+  /** Origem do treino. */
+  source?: 'strava' | 'garmin' | 'manual' | 'other'
+  /** Link da atividade (Strava/Garmin), opcional. */
+  url?: string
+  note?: string
+}
+
 /** Linha que o parser não conseguiu interpretar — mostrada em aviso na pré-visualização. */
 export interface ParseWarning {
   line: number
