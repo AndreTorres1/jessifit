@@ -58,3 +58,66 @@ export function weekGrid(
     return { day, state: 'pending' as const }
   })
 }
+
+// ---- Pontuação do desafio --------------------------------------------------
+
+/** Bónus por cumprir a meta semanal de treinos. */
+export const GOAL_BONUS = 5
+/** Dificuldade assumida quando um treino foi marcado sem dificuldade. */
+const DEFAULT_DIFFICULTY = 3
+
+interface WeekLike {
+  done: number
+  total: number
+  points?: number
+}
+
+/** Pontos de uma semana a partir das marcações: soma das dificuldades + bónus de meta. */
+export function weekPointsFromCompletions(completions: Completions, goal: number): number {
+  let pts = 0
+  let done = 0
+  for (const c of Object.values(completions)) {
+    if (c?.status === 'done') {
+      done++
+      pts += c.difficulty ?? DEFAULT_DIFFICULTY
+    }
+  }
+  if (goal > 0 && done >= goal) pts += GOAL_BONUS
+  return pts
+}
+
+/** Pontos de uma semana arquivada (usa os guardados; se antigos, estima). */
+export function weekPointsFromSummary(s: WeekLike, goal: number): number {
+  if (typeof s.points === 'number') return s.points
+  const base = s.done * DEFAULT_DIFFICULTY
+  return base + (goal > 0 && s.done >= goal ? GOAL_BONUS : 0)
+}
+
+export interface MemberScore {
+  points: number
+  workouts: number
+  weekDone: number
+  weekGoalMet: boolean
+}
+
+/** Estado de treino de um participante, tal como guardado no backend (jsonb solto). */
+interface MemberState {
+  completions?: unknown
+  history?: unknown
+}
+
+/** Pontuação total de um participante: semana atual + histórico. */
+export function scoreMember(state: MemberState | undefined, goal: number): MemberScore {
+  const completions = (state?.completions as Completions | undefined) ?? {}
+  const history = (state?.history as WeekLike[] | undefined) ?? []
+  const weekPts = weekPointsFromCompletions(completions, goal)
+  const histPts = history.reduce((sum, w) => sum + weekPointsFromSummary(w, goal), 0)
+  const weekDone = countDone(completions)
+  const histWorkouts = history.reduce((sum, w) => sum + w.done, 0)
+  return {
+    points: weekPts + histPts,
+    workouts: weekDone + histWorkouts,
+    weekDone,
+    weekGoalMet: goal > 0 && weekDone >= goal,
+  }
+}

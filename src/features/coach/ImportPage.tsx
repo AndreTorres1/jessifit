@@ -50,12 +50,12 @@ export default function ImportPage() {
   const publish = () => {
     if (editing) {
       updateCurrentPlan(parsed.days, text, coachNote)
-      show('Semana atualizada')
+      show('Plano atualizado')
     } else {
       publishPlan(parsed.days, text, coachNote)
-      show(`Semana publicada para a ${plan.athleteName}`)
+      show('Plano guardado 💪')
     }
-    navigate('/painel')
+    navigate('/plano')
   }
 
   return (
@@ -193,19 +193,18 @@ export default function ImportPage() {
 
       {hasContent && (
         <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
-          Mensagem para a {plan.athleteName} (opcional)
+          Nota pessoal para esta semana (opcional)
           <input
             value={coachNote}
             onChange={(e) => setCoachNote(e.target.value)}
-            placeholder="Ex.: Semana puxada, mas tu consegues! 💪"
+            placeholder="Ex.: Foco nas pernas, semana puxada! 💪"
             className="rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm text-ink outline-none focus:border-accent"
           />
         </label>
       )}
 
       <Button block disabled={!hasContent || parsed.days.length === 0} onClick={publish} className="text-base">
-        <Check size={18} />{' '}
-        {editing ? 'Guardar alterações' : `Publicar semana para a ${plan.athleteName}`}
+        <Check size={18} /> {editing ? 'Guardar alterações' : 'Guardar o meu plano'}
       </Button>
     </div>
   )

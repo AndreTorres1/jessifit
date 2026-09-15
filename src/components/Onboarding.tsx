@@ -8,18 +8,18 @@ const KEY = 'jessifit:onboarded'
 const STEPS = [
   {
     icon: CalendarCheck,
-    title: 'Os teus treinos, semana a semana',
-    text: 'O teu treinador envia o plano e tu vês logo o treino de hoje e a semana toda.',
+    title: 'O teu treino, à tua maneira',
+    text: 'Monta o teu plano da semana e vê logo o treino de hoje e a semana toda.',
   },
   {
     icon: PlayCircle,
-    title: 'Aprende cada exercício',
-    text: 'Não sabes um exercício? Toca no ▶ e vê a demonstração em vídeo ou foto.',
+    title: 'Prova que treinaste',
+    text: 'No fim de cada treino tiras uma foto como prova — e somas pontos.',
   },
   {
     icon: Flame,
-    title: 'Marca e mantém o ritmo',
-    text: 'Marca o que fazes, deixa uma nota e acompanha o teu progresso e streak.',
+    title: 'Sobe no ranking do grupo',
+    text: 'Cumpre a meta semanal, ganha pontos pela dificuldade e desafia os colegas.',
   },
 ]
 

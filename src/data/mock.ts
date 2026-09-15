@@ -1,5 +1,6 @@
 import type { Exercise } from '@/types'
 import type { WeekPlan } from './store'
+import type { Challenge, Member } from './remote'
 import { parseWorkouts } from '@/engine/parseWorkouts'
 
 /** Alguns exercícios da biblioteca já com demonstração, para o modo demo. */
@@ -67,7 +68,86 @@ Domingo - descanso`
 
 export const demoWeek: WeekPlan = {
   weekNumber: 3,
-  athleteName: 'Jessi',
+  athleteName: 'Eu',
   rawText: DEMO_TEXT,
   days: parseWorkouts(DEMO_TEXT).days,
 }
+
+// ---- Desafio de demonstração (ranking) -------------------------------------
+
+export const demoChallenge: Challenge = {
+  id: 'demo-challenge',
+  code: 'DEMO25',
+  name: 'Desafio do Escritório',
+  weeklyGoal: 4,
+  ownerId: 'demo-me',
+  createdAt: '2026-09-01T00:00:00.000Z',
+}
+
+const now = new Date().toISOString()
+
+/** Participantes fictícios com progresso variado para preencher o ranking. */
+export const demoMembers: Member[] = [
+  {
+    userId: 'demo-me',
+    displayName: 'Eu',
+    isOwner: true,
+    updatedAt: now,
+    state: {
+      completions: {
+        segunda: { status: 'done', difficulty: 4, markedAt: now },
+        quarta: { status: 'done', difficulty: 3, markedAt: now },
+        sexta: { status: 'done', difficulty: 5, markedAt: now },
+      },
+      history: [
+        { weekNumber: 2, done: 4, total: 4, endedAt: '2026-09-07T00:00:00.000Z', points: 17 },
+        { weekNumber: 1, done: 3, total: 4, endedAt: '2026-08-31T00:00:00.000Z', points: 9 },
+      ],
+    },
+  },
+  {
+    userId: 'demo-rui',
+    displayName: 'Rui',
+    isOwner: false,
+    updatedAt: now,
+    state: {
+      completions: {
+        segunda: { status: 'done', difficulty: 5, markedAt: now },
+        terca: { status: 'done', difficulty: 4, markedAt: now },
+        quarta: { status: 'done', difficulty: 4, markedAt: now },
+        quinta: { status: 'done', difficulty: 3, markedAt: now },
+      },
+      history: [
+        { weekNumber: 2, done: 4, total: 4, endedAt: '2026-09-07T00:00:00.000Z', points: 21 },
+        { weekNumber: 1, done: 4, total: 4, endedAt: '2026-08-31T00:00:00.000Z', points: 18 },
+      ],
+    },
+  },
+  {
+    userId: 'demo-marta',
+    displayName: 'Marta',
+    isOwner: false,
+    updatedAt: now,
+    state: {
+      completions: {
+        terca: { status: 'done', difficulty: 3, markedAt: now },
+        quinta: { status: 'done', difficulty: 4, markedAt: now },
+      },
+      history: [
+        { weekNumber: 2, done: 3, total: 4, endedAt: '2026-09-07T00:00:00.000Z', points: 10 },
+      ],
+    },
+  },
+  {
+    userId: 'demo-tiago',
+    displayName: 'Tiago',
+    isOwner: false,
+    updatedAt: now,
+    state: {
+      completions: {
+        segunda: { status: 'done', difficulty: 2, markedAt: now },
+      },
+      history: [],
+    },
+  },
+]

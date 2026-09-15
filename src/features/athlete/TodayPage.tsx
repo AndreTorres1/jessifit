@@ -293,7 +293,7 @@ export default function TodayPage() {
             <MessageCircle size={18} />
           </div>
           <div>
-            <p className="text-xs font-semibold text-accent-deep">Recado do treinador</p>
+            <p className="text-xs font-semibold text-accent-deep">Nota da semana</p>
             <p className="text-sm text-ink-soft">{plan.coachNote}</p>
           </div>
         </Card>
@@ -313,8 +313,8 @@ export default function TodayPage() {
       )}
 
       {!day && (
-        <EmptyState icon={<CalendarX size={30} />} title="Sem treino definido">
-          Ainda não há treino para hoje. Fala com o teu treinador. 💬
+        <EmptyState icon={<CalendarX size={30} />} title="Sem treino para hoje">
+          Sem treino definido para hoje. Cria ou ajusta o teu plano na aba <b>Plano</b>. 💬
         </EmptyState>
       )}
 

@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Coffee, Check, X, Camera, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Coffee, Check, X, Camera, Loader2, Pencil, Dumbbell, Plus } from 'lucide-react'
 import { useApp } from '@/data/store'
 import { WEEKDAY_LABEL, type Weekday } from '@/types'
 import { sortByWeekday, todayWeekday } from '@/lib/format'
-import { Card, Pill, Eyebrow, Button } from '@/components/ui'
+import { Card, Pill, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { useToast } from '@/components/Toast'
 import { CameraCapture } from '@/components/CameraCapture'
 import { haptic } from '@/lib/haptics'
@@ -16,7 +17,9 @@ import { weekProgress } from '../shared/stats'
 export default function WeekPage() {
   const { plan, completions, mark, clearMark, history } = useApp()
   const { show } = useToast()
+  const navigate = useNavigate()
   const today = todayWeekday()
+  const hasPlan = plan.days.length > 0
   const { done, total } = weekProgress(plan.days, completions)
   const days = sortByWeekday(plan.days)
   const [cameraDay, setCameraDay] = useState<Weekday | null>(null)
@@ -55,16 +58,48 @@ export default function WeekPage() {
       <div className="flex items-center justify-between">
         <div>
           <Eyebrow>Semana {plan.weekNumber}</Eyebrow>
-          <h1 className="text-2xl font-extrabold">A tua semana</h1>
+          <h1 className="text-2xl font-extrabold">O meu plano</h1>
         </div>
-        <Pill>
-          {done} / {total} ✓
-        </Pill>
+        {hasPlan && (
+          <Pill>
+            {done} / {total} ✓
+          </Pill>
+        )}
       </div>
 
-      <Card>
-        <WeekGrid days={plan.days} completions={completions} />
-      </Card>
+      <div className="flex gap-2">
+        <Button
+          variant={hasPlan ? 'ghost' : 'primary'}
+          block
+          onClick={() =>
+            navigate('/importar', hasPlan ? { state: { edit: true } } : undefined)
+          }
+        >
+          {hasPlan ? (
+            <>
+              <Pencil size={16} /> Editar plano
+            </>
+          ) : (
+            <>
+              <Plus size={16} /> Criar o meu plano
+            </>
+          )}
+        </Button>
+        <Button variant="soft" onClick={() => navigate('/biblioteca')}>
+          <Dumbbell size={16} /> Exercícios
+        </Button>
+      </div>
+
+      {!hasPlan ? (
+        <EmptyState icon={<Dumbbell size={30} />} title="Ainda sem plano">
+          Cria o teu plano de treino da semana para começar a marcar treinos e somar
+          pontos no ranking.
+        </EmptyState>
+      ) : (
+        <Card>
+          <WeekGrid days={plan.days} completions={completions} />
+        </Card>
+      )}
 
       <div className="flex flex-col gap-3">
         {days.map((d) => {

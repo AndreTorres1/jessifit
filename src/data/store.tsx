@@ -12,13 +12,9 @@ import { matchKey } from '@/lib/text'
 import { loadJSON, saveJSON } from '@/lib/storage'
 import { isDemoMode } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
-import {
-  loadShared,
-  saveShared,
-  subscribeShared,
-  claimAccess,
-  type SharedData,
-} from './remote'
+import { useChallenge } from './challenge'
+import { loadMyState, saveMyState, subscribeMyState, type SharedData } from './remote'
+import { weekPointsFromCompletions } from '@/features/shared/stats'
 import { demoWeek, demoExercises } from './mock'
 
 export interface Completion {
@@ -37,7 +33,7 @@ export interface WeekPlan {
   days: WorkoutDay[]
   /** Texto original importado, para reimportar/editar. */
   rawText?: string
-  /** Recado do treinador para a atleta nesta semana. */
+  /** Nota pessoal / recado desta semana. */
   coachNote?: string
 }
 
@@ -47,9 +43,11 @@ export interface WeekSummary {
   done: number
   total: number
   endedAt: string // ISO
+  /** Pontos ganhos nessa semana (dificuldade + bónus de meta). */
+  points?: number
 }
 
-/** Fatia partilhada do estado (persistida em localStorage ou no Supabase). */
+/** Fatia de estado de cada participante (persistida no Supabase, por membro). */
 interface Shared {
   plan: WeekPlan
   completions: Partial<Record<Weekday, Completion>>
@@ -64,7 +62,6 @@ interface AppState extends Shared {
 
 interface AppContextValue extends AppState {
   loading: boolean
-  accessDenied: boolean
   saving: boolean
   online: boolean
   setRole: (role: Role | null) => void
@@ -87,7 +84,7 @@ const online = !isDemoMode
 const emptyPlan: WeekPlan = { weekNumber: 1, athleteName: 'Atleta', days: [] }
 
 const onlineInitial: AppState = {
-  role: null,
+  role: 'athlete',
   plan: emptyPlan,
   completions: {},
   exercises: [],
@@ -96,21 +93,22 @@ const onlineInitial: AppState = {
 }
 
 const demoInitial: AppState = {
-  role: null,
+  role: 'athlete',
   plan: demoWeek,
   completions: {
     segunda: {
       status: 'done',
-      difficulty: 3,
+      difficulty: 4,
       note: 'Leg press custou, subi para 40kg',
       markedAt: new Date().toISOString(),
     },
-    quarta: { status: 'done', difficulty: 2, markedAt: new Date().toISOString() },
+    quarta: { status: 'done', difficulty: 3, markedAt: new Date().toISOString() },
+    sexta: { status: 'done', difficulty: 5, markedAt: new Date().toISOString() },
   },
   exercises: demoExercises,
   history: [
-    { weekNumber: 2, done: 3, total: 3, endedAt: '2026-08-17T00:00:00.000Z' },
-    { weekNumber: 1, done: 2, total: 3, endedAt: '2026-08-10T00:00:00.000Z' },
+    { weekNumber: 2, done: 4, total: 4, endedAt: '2026-09-07T00:00:00.000Z', points: 17 },
+    { weekNumber: 1, done: 3, total: 4, endedAt: '2026-08-31T00:00:00.000Z', points: 9 },
   ],
   logs: [
     { id: 'l1', key: 'agachamento', name: 'Agachamento', date: '2026-08-10T00:00:00.000Z', weight: '50kg', reps: '8' },
@@ -120,7 +118,7 @@ const demoInitial: AppState = {
   ],
 }
 
-function summarizeWeek(state: AppState): WeekSummary {
+function summarizeWeek(state: AppState, goal: number): WeekSummary {
   const training = state.plan.days.filter((d) => !d.rest && d.exercises.length > 0)
   const done = training.filter((d) => state.completions[d.day]?.status === 'done').length
   return {
@@ -128,13 +126,14 @@ function summarizeWeek(state: AppState): WeekSummary {
     done,
     total: training.length,
     endedAt: new Date().toISOString(),
+    points: weekPointsFromCompletions(state.completions, goal),
   }
 }
 
 function loadDemo(): AppState {
   const parsed = loadJSON<AppState | null>(STORAGE_KEY, null)
   if (!parsed) return demoInitial
-  return { ...demoInitial, ...parsed, role: null }
+  return { ...demoInitial, ...parsed, role: 'athlete' }
 }
 
 /** Aplica uma fatia partilhada (do backend) por cima de um estado. */
@@ -153,9 +152,14 @@ const AppContext = createContext<AppContextValue | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const auth = useAuth()
+  const ch = useChallenge()
+  const challengeId = ch.current?.id ?? null
+  const goal = ch.current?.weeklyGoal ?? 4
+  const myUserId = ch.myUserId
+  const myName = ch.myName
+
   const [state, setState] = useState<AppState>(() => (online ? onlineInitial : loadDemo()))
   const [dataLoaded, setDataLoaded] = useState(!online)
-  const [accessDenied, setAccessDenied] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const revRef = useRef<string>('') // última revisão que nós próprios gravámos
@@ -167,32 +171,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveJSON(STORAGE_KEY, state)
   }, [state])
 
-  // ---- Carregar + subscrever (online) --------------------------------------
+  // ---- Carregar + subscrever o meu estado no desafio atual (online) --------
   useEffect(() => {
     if (!online) return
-    if (!auth.session) {
+    if (!auth.session || !challengeId || !myUserId) {
       setState(onlineInitial)
       setDataLoaded(false)
-      setAccessDenied(false)
       return
     }
     let active = true
     let unsub = () => {}
     setDataLoaded(false)
-    claimAccess()
-      .then(async (ok) => {
+    loadMyState(challengeId, myUserId)
+      .then((data) => {
         if (!active) return
-        if (!ok) {
-          setAccessDenied(true)
-          setDataLoaded(true)
-          return
-        }
-        setAccessDenied(false)
-        const data = await loadShared()
-        if (!active) return
-        setState((s) => (data ? applyShared(s, data) : s))
+        const base: AppState = { ...onlineInitial, role: 'athlete' }
+        if (data && data.plan) setState(applyShared(base, data))
+        else setState({ ...base, plan: { ...emptyPlan, athleteName: myName } })
         setDataLoaded(true)
-        unsub = subscribeShared((d) => {
+        unsub = subscribeMyState(challengeId, myUserId, (d) => {
           if (d._rev && d._rev === revRef.current) return // ignora o nosso eco
           setState((s) => applyShared(s, d))
         })
@@ -203,11 +200,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       active = false
       unsub()
     }
-  }, [auth.session])
+  }, [auth.session, challengeId, myUserId, myName])
 
-  /** Grava a fatia partilhada no backend (com debounce), marcando a revisão. */
+  /** Grava a minha fatia no backend (com debounce), marcando a revisão. */
   const persist = (next: AppState) => {
-    if (!online || !dataLoaded) return
+    if (!online || !dataLoaded || !challengeId || !myUserId) return
     const rev = Math.random().toString(36).slice(2)
     revRef.current = rev
     const payload: SharedData = {
@@ -221,7 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearTimeout(saveTimer.current)
     setSaving(true)
     saveTimer.current = setTimeout(() => {
-      saveShared(payload)
+      saveMyState(challengeId, myUserId, payload, next.plan.athleteName)
         .catch(() => {})
         .finally(() => setSaving(false))
     }, 350)
@@ -233,14 +230,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AppContextValue>(() => {
-    const role = online ? (auth.profile?.role ?? null) : state.role
-    const loading = online && (auth.loading || (!!auth.session && !dataLoaded))
+    const loading =
+      online && (auth.loading || (!!auth.session && !!challengeId && !dataLoaded))
 
     return {
       ...state,
-      role,
+      role: state.role,
       loading,
-      accessDenied,
       saving,
       online,
       setRole: (r) => {
@@ -251,7 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       publishPlan: (days, rawText, coachNote) =>
         commit({
           ...state,
-          history: [summarizeWeek(state), ...state.history].slice(0, 24),
+          history: [summarizeWeek(state, goal), ...state.history].slice(0, 24),
           plan: {
             ...state.plan,
             weekNumber: state.plan.weekNumber + 1,
@@ -300,12 +296,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         commit({ ...state, logs: [...state.logs, entry].slice(-500) })
       },
       reset: () => {
-        if (online) commit(onlineInitial)
+        if (online) commit({ ...onlineInitial, plan: { ...emptyPlan, athleteName: myName } })
         else setState(demoInitial)
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, auth.profile, auth.loading, auth.session, dataLoaded, accessDenied, saving])
+  }, [state, auth.loading, auth.session, challengeId, goal, myUserId, myName, dataLoaded, saving])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

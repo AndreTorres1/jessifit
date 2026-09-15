@@ -26,7 +26,7 @@ interface AuthValue {
     email: string,
     password: string,
     name: string,
-    role: Role,
+    role?: Role,
   ) => Promise<string | null>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         return error ? traduzErro(error.message) : null
       },
-      signUp: async (email, password, name, role) => {
+      signUp: async (email, password, name, role = 'athlete') => {
         if (!supabase) return 'Backend indisponível.'
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           options: { data: { name } },
         })
         if (error) return traduzErro(error.message)
-        // define nome e papel no perfil (o trigger criou a linha base)
+        // define nome no perfil (o trigger criou a linha base)
         if (data.user) {
           await supabase
             .from('profiles')
