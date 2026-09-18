@@ -13,7 +13,7 @@ import { loadJSON, saveJSON } from '@/lib/storage'
 import { isDemoMode } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth'
 import { useChallenge } from './challenge'
-import { loadMyState, saveMyState, subscribeMyState, type SharedData } from './remote'
+import { loadUserState, saveUserState, subscribeUserState, type SharedData } from './remote'
 import { weekPointsFromCompletions } from '@/features/shared/stats'
 import { demoWeek, demoExercises } from './mock'
 
@@ -164,7 +164,6 @@ const AppContext = createContext<AppContextValue | null>(null)
 export function AppProvider({ children }: { children: ReactNode }) {
   const auth = useAuth()
   const ch = useChallenge()
-  const challengeId = ch.current?.id ?? null
   const goal = ch.current?.weeklyGoal ?? 4
   const myUserId = ch.myUserId
   const myName = ch.myName
@@ -182,10 +181,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveJSON(STORAGE_KEY, state)
   }, [state])
 
-  // ---- Carregar + subscrever o meu estado no desafio atual (online) --------
+  // ---- Carregar + subscrever o meu estado de treino (online) ---------------
   useEffect(() => {
     if (!online) return
-    if (!auth.session || !challengeId || !myUserId) {
+    if (!auth.session || !myUserId) {
       setState(onlineInitial)
       setDataLoaded(false)
       return
@@ -193,14 +192,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let active = true
     let unsub = () => {}
     setDataLoaded(false)
-    loadMyState(challengeId, myUserId)
+    loadUserState(myUserId)
       .then((data) => {
         if (!active) return
         const base: AppState = { ...onlineInitial, role: 'athlete' }
         if (data && data.plan) setState(applyShared(base, data))
         else setState({ ...base, plan: { ...emptyPlan, athleteName: myName } })
         setDataLoaded(true)
-        unsub = subscribeMyState(challengeId, myUserId, (d) => {
+        unsub = subscribeUserState(myUserId, (d) => {
           if (d._rev && d._rev === revRef.current) return // ignora o nosso eco
           setState((s) => applyShared(s, d))
         })
@@ -211,11 +210,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       active = false
       unsub()
     }
-  }, [auth.session, challengeId, myUserId, myName])
+  }, [auth.session, myUserId, myName])
 
   /** Grava a minha fatia no backend (com debounce), marcando a revisão. */
   const persist = (next: AppState) => {
-    if (!online || !dataLoaded || !challengeId || !myUserId) return
+    if (!online || !dataLoaded || !myUserId) return
     const rev = Math.random().toString(36).slice(2)
     revRef.current = rev
     const payload: SharedData = {
@@ -230,7 +229,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearTimeout(saveTimer.current)
     setSaving(true)
     saveTimer.current = setTimeout(() => {
-      saveMyState(challengeId, myUserId, payload, next.plan.athleteName)
+      saveUserState(myUserId, payload)
         .catch(() => {})
         .finally(() => setSaving(false))
     }, 350)
@@ -242,8 +241,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo<AppContextValue>(() => {
-    const loading =
-      online && (auth.loading || (!!auth.session && !!challengeId && !dataLoaded))
+    const loading = online && (auth.loading || (!!auth.session && !dataLoaded))
 
     return {
       ...state,
@@ -326,7 +324,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, auth.loading, auth.session, challengeId, goal, myUserId, myName, dataLoaded, saving])
+  }, [state, auth.loading, auth.session, goal, myUserId, myName, dataLoaded, saving])
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

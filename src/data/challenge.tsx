@@ -11,17 +11,23 @@ import {
 import { useAuth } from '@/lib/auth'
 import { isDemoMode } from '@/lib/supabase'
 import {
+  addAthleteByEmail,
   createChallenge,
   joinChallenge,
   listMyChallenges,
   loadMembers,
+  loadUserStates,
+  myAthletes,
   removeMember,
   subscribeMembers,
+  subscribeUserStatesChanges,
   updateChallenge,
+  type Athlete,
   type Challenge,
   type Member,
+  type AddAthleteResult,
 } from './remote'
-import { demoChallenge, demoMembers } from './mock'
+import { demoChallenge, demoMembers, demoAthletes } from './mock'
 
 const CURRENT_KEY = 'jessifit:challenge:current'
 
@@ -30,15 +36,19 @@ interface ChallengeValue {
   challenges: Challenge[]
   current: Challenge | null
   members: Member[]
+  athletes: Athlete[]
   myUserId: string | null
   myName: string
   isOwner: boolean
   create: (name: string, goal: number) => Promise<Challenge | null>
   join: (code: string) => Promise<{ ok: boolean; reason?: 'not_found' | 'error' }>
+  leave: () => void
   switchTo: (id: string) => void
   update: (patch: ChallengePatch) => Promise<void>
   remove: (userId: string) => Promise<void>
   refreshMembers: () => Promise<void>
+  addAthlete: (email: string) => Promise<AddAthleteResult>
+  refreshAthletes: () => Promise<void>
 }
 
 type ChallengePatch = {
@@ -66,6 +76,13 @@ function writeCurrentId(id: string | null) {
   }
 }
 
+/** Membros do desafio com o estado de treino de cada um (do user_state). */
+async function membersWithStates(challengeId: string): Promise<Member[]> {
+  const raw = await loadMembers(challengeId)
+  const states = await loadUserStates(raw.map((m) => m.userId))
+  return raw.map((m) => ({ ...m, state: states[m.userId] ?? {} }))
+}
+
 export function ChallengeProvider({ children }: { children: ReactNode }) {
   const auth = useAuth()
   const [challenges, setChallenges] = useState<Challenge[]>(
@@ -75,6 +92,7 @@ export function ChallengeProvider({ children }: { children: ReactNode }) {
     isDemoMode ? demoChallenge.id : readCurrentId(),
   )
   const [members, setMembers] = useState<Member[]>(isDemoMode ? demoMembers : [])
+  const [athletes, setAthletes] = useState<Athlete[]>(isDemoMode ? demoAthletes : [])
   const [loading, setLoading] = useState(!isDemoMode)
 
   const myUserId = isDemoMode ? 'demo-me' : (auth.user?.id ?? null)
@@ -85,22 +103,33 @@ export function ChallengeProvider({ children }: { children: ReactNode }) {
     [challenges, currentId],
   )
 
-  // ---- Carregar a lista de desafios (online) -------------------------------
+  // ---- Carregar desafios + atletas (online) --------------------------------
+  const refreshAthletes = useCallback(async () => {
+    if (isDemoMode) return
+    try {
+      setAthletes(await myAthletes())
+    } catch {
+      /* ignora */
+    }
+  }, [])
+
   useEffect(() => {
     if (isDemoMode) return
     if (!auth.session) {
       setChallenges([])
       setCurrentId(null)
       setMembers([])
+      setAthletes([])
       setLoading(false)
       return
     }
     let active = true
     setLoading(true)
-    listMyChallenges()
-      .then((list) => {
+    Promise.all([listMyChallenges(), myAthletes().catch(() => [])])
+      .then(([list, ath]) => {
         if (!active) return
         setChallenges(list)
+        setAthletes(ath)
         setCurrentId((prev) => {
           const saved = prev ?? readCurrentId()
           if (saved && list.some((c) => c.id === saved)) return saved
@@ -114,11 +143,11 @@ export function ChallengeProvider({ children }: { children: ReactNode }) {
     }
   }, [auth.session])
 
-  // ---- Carregar + subscrever membros do desafio atual ----------------------
+  // ---- Carregar + subscrever membros do desafio atual (com estados) --------
   const refreshMembers = useCallback(async () => {
     if (isDemoMode || !current) return
     try {
-      setMembers(await loadMembers(current.id))
+      setMembers(await membersWithStates(current.id))
     } catch {
       /* ignora */
     }
@@ -126,24 +155,29 @@ export function ChallengeProvider({ children }: { children: ReactNode }) {
 
   const bump = useRef(0)
   useEffect(() => {
-    if (isDemoMode || !current) return
+    if (isDemoMode || !current) {
+      if (!isDemoMode) setMembers([])
+      return
+    }
     let active = true
-    loadMembers(current.id)
-      .then((m) => active && setMembers(m))
-      .catch(() => {})
-    const unsub = subscribeMembers(current.id, () => {
-      // recarrega (debounce simples via microtask flag)
+    const reload = () => {
       const id = ++bump.current
       setTimeout(() => {
-        if (id !== bump.current) return
-        loadMembers(current.id)
-          .then((m) => setMembers(m))
+        if (id !== bump.current || !active) return
+        membersWithStates(current.id)
+          .then((m) => active && setMembers(m))
           .catch(() => {})
       }, 250)
-    })
+    }
+    membersWithStates(current.id)
+      .then((m) => active && setMembers(m))
+      .catch(() => {})
+    const unsubMembers = subscribeMembers(current.id, reload)
+    const unsubStates = subscribeUserStatesChanges(reload)
     return () => {
       active = false
-      unsub()
+      unsubMembers()
+      unsubStates()
     }
   }, [current])
 
@@ -157,6 +191,7 @@ export function ChallengeProvider({ children }: { children: ReactNode }) {
       challenges,
       current,
       members,
+      athletes,
       myUserId,
       myName,
       isOwner: !!current && !!myUserId && current.ownerId === myUserId,
@@ -173,6 +208,7 @@ export function ChallengeProvider({ children }: { children: ReactNode }) {
         setCurrentId(r.challenge.id)
         return { ok: true }
       },
+      leave: () => setCurrentId(null),
       switchTo: (id) => setCurrentId(id),
       update: async (patch) => {
         if (!current) return
@@ -185,8 +221,14 @@ export function ChallengeProvider({ children }: { children: ReactNode }) {
         setMembers((ms) => ms.filter((m) => m.userId !== userId))
       },
       refreshMembers,
+      addAthlete: async (email) => {
+        const r = await addAthleteByEmail(email)
+        if (r.ok) setAthletes((a) => [...a.filter((x) => x.userId !== r.athlete.userId), r.athlete])
+        return r
+      },
+      refreshAthletes,
     }),
-    [loading, challenges, current, members, myUserId, myName, refreshMembers],
+    [loading, challenges, current, members, athletes, myUserId, myName, refreshMembers, refreshAthletes],
   )
 
   return <ChallengeContext.Provider value={value}>{children}</ChallengeContext.Provider>

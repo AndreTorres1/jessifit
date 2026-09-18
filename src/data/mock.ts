@@ -1,7 +1,13 @@
 import type { Exercise } from '@/types'
 import type { WeekPlan } from './store'
-import type { Challenge, Member } from './remote'
+import type { Challenge, Member, Athlete } from './remote'
 import { parseWorkouts } from '@/engine/parseWorkouts'
+
+/** Atletas fictícios que "eu" treino, para o modo demo. */
+export const demoAthletes: Athlete[] = [
+  { userId: 'demo-jessica', name: 'Jessica' },
+  { userId: 'demo-lu', name: 'Lu' },
+]
 
 /** Alguns exercícios da biblioteca já com demonstração, para o modo demo. */
 export const demoExercises: Exercise[] = [

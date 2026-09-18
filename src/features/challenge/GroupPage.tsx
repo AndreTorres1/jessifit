@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Navigate, useNavigate } from 'react-router-dom'
 import {
   Users,
   Share2,
@@ -26,6 +27,7 @@ const GOALS = [3, 4, 5, 6]
 export default function GroupPage() {
   const { current, members, myUserId, isOwner, challenges, switchTo, update, remove } =
     useChallenge()
+  const navigate = useNavigate()
   const { show } = useToast()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(current?.name ?? '')
@@ -36,7 +38,7 @@ export default function GroupPage() {
   const [copied, setCopied] = useState(false)
   const [selected, setSelected] = useState<Member | null>(null)
 
-  if (!current) return null
+  if (!current) return <Navigate to="/desafio" replace />
 
   const status = challengeStatus(current)
   const statusLabel =
@@ -273,7 +275,10 @@ export default function GroupPage() {
               </button>
             ))}
           <button
-            onClick={() => switchTo('')}
+            onClick={() => {
+              switchTo('')
+              navigate('/desafio')
+            }}
             className="flex items-center gap-2 rounded-xl border border-dashed border-line px-4 py-3 text-left text-sm font-medium text-muted"
           >
             <Plus size={15} /> Entrar / criar outro desafio

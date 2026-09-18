@@ -20,10 +20,10 @@ import { SettingsModal } from './components/SettingsModal'
 
 // Code-splitting por rota: cada vista carrega só quando é necessária.
 const LoginPage = lazy(() => import('./features/auth/LoginPage'))
-const GatePage = lazy(() => import('./features/challenge/GatePage'))
 const TodayPage = lazy(() => import('./features/athlete/TodayPage'))
 const WeekPage = lazy(() => import('./features/athlete/WeekPage'))
-const LeaderboardPage = lazy(() => import('./features/challenge/LeaderboardPage'))
+const AthletesPage = lazy(() => import('./features/challenge/AthletesPage'))
+const DesafioPage = lazy(() => import('./features/challenge/DesafioPage'))
 const GroupPage = lazy(() => import('./features/challenge/GroupPage'))
 const ImportPage = lazy(() => import('./features/coach/ImportPage'))
 const LibraryPage = lazy(() => import('./features/coach/LibraryPage'))
@@ -31,8 +31,8 @@ const LibraryPage = lazy(() => import('./features/coach/LibraryPage'))
 const TABS = [
   { to: '/hoje', label: 'Hoje', icon: Home },
   { to: '/plano', label: 'Plano', icon: CalendarDays },
-  { to: '/ranking', label: 'Ranking', icon: Trophy },
-  { to: '/grupo', label: 'Grupo', icon: Users },
+  { to: '/atletas', label: 'Atletas', icon: Users },
+  { to: '/desafio', label: 'Desafio', icon: Trophy },
 ]
 
 function Fallback() {
@@ -45,19 +45,14 @@ function Fallback() {
 
 function TopBar() {
   const { saving, online } = useApp()
-  const { current, myName } = useChallenge()
+  const { myName } = useChallenge()
   const { signOut } = useAuth()
   const [settingsOpen, setSettingsOpen] = useState(false)
   return (
     <header className="safe-top sticky top-0 z-10 border-b border-line bg-ground/85 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center gap-2.5 px-4 py-2.5">
         <Logo size={30} />
-        <div className="min-w-0">
-          <Wordmark className="text-base" />
-          {current && (
-            <p className="-mt-0.5 truncate text-[0.7rem] text-muted">{current.name}</p>
-          )}
-        </div>
+        <Wordmark className="text-base" />
         <span className="ml-auto flex items-center gap-1 text-xs text-muted">
           {online && saving && (
             <span className="mr-1 flex items-center gap-1 text-[0.7rem] text-muted">
@@ -116,24 +111,14 @@ function TabBar() {
 export default function App() {
   const { loading } = useApp()
   const auth = useAuth()
-  const { current, loading: challengeLoading } = useChallenge()
   const location = useLocation()
 
-  // ---- Fluxo de acesso ------------------------------------------------------
   if (!isDemoMode) {
     if (auth.loading) return <Fallback />
     if (!auth.session) {
       return (
         <Suspense fallback={<Fallback />}>
           <LoginPage />
-        </Suspense>
-      )
-    }
-    if (challengeLoading) return <Fallback />
-    if (!current) {
-      return (
-        <Suspense fallback={<Fallback />}>
-          <GatePage />
         </Suspense>
       )
     }
@@ -151,7 +136,8 @@ export default function App() {
             <Routes location={location}>
               <Route path="/hoje" element={<TodayPage />} />
               <Route path="/plano" element={<WeekPage />} />
-              <Route path="/ranking" element={<LeaderboardPage />} />
+              <Route path="/atletas" element={<AthletesPage />} />
+              <Route path="/desafio" element={<DesafioPage />} />
               <Route path="/grupo" element={<GroupPage />} />
               <Route path="/importar" element={<ImportPage />} />
               <Route path="/biblioteca" element={<LibraryPage />} />

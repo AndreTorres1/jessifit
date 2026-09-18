@@ -34,6 +34,12 @@ export interface Member {
   updatedAt: string
 }
 
+/** Um atleta que treino (relação treinador→atleta). */
+export interface Athlete {
+  userId: string
+  name: string
+}
+
 interface ChallengeRow {
   id: string
   code: string
@@ -140,6 +146,21 @@ export async function removeMember(challengeId: string, userId: string): Promise
   if (error) throw error
 }
 
+/** Define o plano de treino de um participante (só o organizador). */
+export async function setMemberPlan(
+  challengeId: string,
+  userId: string,
+  plan: unknown,
+): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase.rpc('set_member_plan', {
+    p_challenge: challengeId,
+    p_user: userId,
+    p_plan: plan,
+  })
+  if (error) throw error
+}
+
 // ---- Membros (ranking) -----------------------------------------------------
 
 export async function loadMembers(challengeId: string): Promise<Member[]> {
@@ -238,4 +259,115 @@ export function subscribeMyState(
   return () => {
     client.removeChannel(channel)
   }
+}
+
+// ---- Estado de treino por utilizador (independente de desafios) ------------
+
+export async function loadUserState(userId: string): Promise<SharedData | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('user_state')
+    .select('state')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) throw error
+  return (data?.state as SharedData) ?? {}
+}
+
+export async function saveUserState(userId: string, data: SharedData): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase
+    .from('user_state')
+    .upsert(
+      { user_id: userId, state: data, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    )
+  if (error) throw error
+}
+
+export function subscribeUserState(
+  userId: string,
+  cb: (data: SharedData) => void,
+): () => void {
+  const client = supabase
+  if (!client) return () => {}
+  const channel = client
+    .channel(`userstate:${userId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'user_state', filter: `user_id=eq.${userId}` },
+      (payload) => {
+        const next = (payload.new as { state?: SharedData } | null)?.state
+        if (next) cb(next)
+      },
+    )
+    .subscribe()
+  return () => {
+    client.removeChannel(channel)
+  }
+}
+
+/** Subscreve qualquer alteração a estados de treino (para atualizar o ranking). */
+export function subscribeUserStatesChanges(cb: () => void): () => void {
+  const client = supabase
+  if (!client) return () => {}
+  const channel = client
+    .channel('userstates-all')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'user_state' }, () => cb())
+    .subscribe()
+  return () => {
+    client.removeChannel(channel)
+  }
+}
+
+/** Carrega os estados de vários utilizadores (para o ranking). */
+export async function loadUserStates(userIds: string[]): Promise<Record<string, SharedData>> {
+  if (!supabase || userIds.length === 0) return {}
+  const { data, error } = await supabase
+    .from('user_state')
+    .select('user_id, state')
+    .in('user_id', userIds)
+  if (error) throw error
+  const map: Record<string, SharedData> = {}
+  for (const row of (data as { user_id: string; state: SharedData }[]) ?? []) {
+    map[row.user_id] = row.state ?? {}
+  }
+  return map
+}
+
+// ---- Treinador → atletas ---------------------------------------------------
+
+export async function myAthletes(): Promise<Athlete[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('my_athletes')
+  if (error) throw error
+  return ((data as { athlete_id: string; athlete_name: string }[]) ?? []).map((r) => ({
+    userId: r.athlete_id,
+    name: r.athlete_name,
+  }))
+}
+
+export type AddAthleteResult =
+  | { ok: true; athlete: Athlete }
+  | { ok: false; reason: 'not_found' | 'self' | 'error' }
+
+export async function addAthleteByEmail(email: string): Promise<AddAthleteResult> {
+  if (!supabase) return { ok: false, reason: 'error' }
+  const { data, error } = await supabase.rpc('add_athlete_by_email', { p_email: email.trim() })
+  if (error) {
+    if (error.message?.includes('USER_NOT_FOUND')) return { ok: false, reason: 'not_found' }
+    if (error.message?.includes('CANNOT_ADD_SELF')) return { ok: false, reason: 'self' }
+    return { ok: false, reason: 'error' }
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as { athlete_id: string; athlete_name: string }
+  return { ok: true, athlete: { userId: row.athlete_id, name: row.athlete_name } }
+}
+
+export async function setAthletePlan(athleteId: string, plan: unknown): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase.rpc('set_athlete_plan', {
+    p_athlete: athleteId,
+    p_plan: plan,
+  })
+  if (error) throw error
 }

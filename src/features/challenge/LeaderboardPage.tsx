@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Trophy, Target, Flame, Medal, PartyPopper } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Trophy, Target, Flame, Medal, PartyPopper, Users } from 'lucide-react'
 import { useChallenge } from '@/data/challenge'
 import { Card, Pill, Eyebrow, EmptyState } from '@/components/ui'
 import { challengeStatus } from '@/lib/challengeStatus'
@@ -18,6 +19,7 @@ const MEDAL = ['#F5C542', '#B8C0CC', '#CD8B5B'] // ouro, prata, bronze
 
 export default function LeaderboardPage() {
   const { current, members, myUserId } = useChallenge()
+  const navigate = useNavigate()
   const goal = current?.weeklyGoal ?? 4
   const [view, setView] = useState<'points' | 'run'>('points')
 
@@ -40,9 +42,17 @@ export default function LeaderboardPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <Eyebrow>{current?.name ?? 'Desafio'}</Eyebrow>
-        <h1 className="text-2xl font-extrabold">Ranking</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Eyebrow>{current?.name ?? 'Desafio'}</Eyebrow>
+          <h1 className="text-2xl font-extrabold">Ranking</h1>
+        </div>
+        <button
+          onClick={() => navigate('/grupo')}
+          className="mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink-soft"
+        >
+          <Users size={14} /> Grupo
+        </button>
       </div>
 
       {winner && (
