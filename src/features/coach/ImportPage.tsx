@@ -157,7 +157,7 @@ export default function ImportPage() {
                   <ul className="mt-2 flex flex-col gap-1.5">
                     {d.exercises.map((ex, i) => (
                       <li key={i} className="flex items-baseline justify-between gap-2 text-sm">
-                        <span className="min-w-0 truncate">
+                        <span className="min-w-0 flex-1 break-words">
                           {ex.name}
                           {ex.note && (
                             <span className="text-muted"> ({ex.note})</span>

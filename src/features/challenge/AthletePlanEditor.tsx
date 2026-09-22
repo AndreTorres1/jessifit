@@ -223,7 +223,7 @@ export function AthletePlanEditor({
                       <ul className="mt-2 flex flex-col gap-1.5">
                         {d.exercises.map((ex, i) => (
                           <li key={i} className="flex items-baseline justify-between gap-2 text-sm">
-                            <span className="min-w-0 truncate">{ex.name}</span>
+                            <span className="min-w-0 flex-1 break-words">{ex.name}</span>
                             <span className="tabnums shrink-0 font-[var(--font-mono)] text-xs text-muted">
                               {setsRepsLabel(ex)}
                               {ex.weight ? ` · ${ex.weight}` : ''}

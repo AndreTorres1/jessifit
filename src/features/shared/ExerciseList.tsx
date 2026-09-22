@@ -187,13 +187,13 @@ export function ExerciseRow({
         </button>
         <div className="min-w-0 flex-1">
           <p
-            className={`truncate text-sm font-medium ${
+            className={`break-words text-sm font-medium ${
               checked ? 'text-muted line-through' : ''
             }`}
           >
             {item.name}
           </p>
-          {item.note && <p className="truncate text-xs text-muted">{item.note}</p>}
+          {item.note && <p className="break-words text-xs text-muted">{item.note}</p>}
         </div>
         <div className="text-right">
           {sr && (
