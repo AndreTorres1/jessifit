@@ -6,6 +6,7 @@ import { useToast } from './Toast'
 import { useEscapeKey } from '@/lib/hooks'
 import { isDemoMode } from '@/lib/supabase'
 import { pushState, enablePush, disablePush } from '@/lib/push'
+import { Portal } from './Portal'
 import { Button } from './ui'
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -46,17 +47,18 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
+    <Portal>
       <div
-        className="safe-bottom w-full max-w-md rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl"
-        style={{ boxShadow: 'var(--shadow-lift)' }}
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+        onClick={onClose}
+        role="dialog"
+        aria-modal="true"
       >
+        <div
+          className="safe-bottom max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl"
+          style={{ boxShadow: 'var(--shadow-lift)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-[var(--font-display)] text-lg font-bold">Definições</h3>
           <button
@@ -137,7 +139,8 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             </button>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </Portal>
   )
 }

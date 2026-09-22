@@ -4,6 +4,7 @@ import type { Exercise, ExerciseItem } from '@/types'
 import { setsRepsLabel } from '@/engine/parseWorkouts'
 import { youtubeId, demoSearchUrl } from '@/lib/text'
 import { useApp } from '@/data/store'
+import { Portal } from '@/components/Portal'
 import { useEscapeKey } from '@/lib/hooks'
 
 function DemoSheet({
@@ -20,17 +21,18 @@ function DemoSheet({
   useEscapeKey(onClose)
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
+    <Portal>
       <div
-        className="safe-bottom w-full max-w-md rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl"
-        style={{ boxShadow: 'var(--shadow-lift)' }}
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+        onClick={onClose}
+        role="dialog"
+        aria-modal="true"
       >
+        <div
+          className="safe-bottom max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl"
+          style={{ boxShadow: 'var(--shadow-lift)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="mb-3 flex items-center justify-between">
           <div>
             <h3 className="font-[var(--font-display)] text-lg font-bold">{name}</h3>
@@ -86,8 +88,9 @@ function DemoSheet({
             </a>
           </>
         )}
+        </div>
       </div>
-    </div>
+    </Portal>
   )
 }
 

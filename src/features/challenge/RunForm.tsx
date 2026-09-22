@@ -6,6 +6,7 @@ import { useEscapeKey } from '@/lib/hooks'
 import { Button } from '@/components/ui'
 import { parseDistance, parseDuration, formatDuration, formatPace, paceSeconds } from '@/lib/run'
 import { parseActivityFile } from '@/lib/activityFile'
+import { Portal } from '@/components/Portal'
 import type { RunLog } from '@/types'
 
 /** Mostra um número de km sem casas decimais desnecessárias. */
@@ -65,17 +66,18 @@ export function RunForm({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
+    <Portal>
       <div
-        className="safe-bottom w-full max-w-md rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl"
-        style={{ boxShadow: 'var(--shadow-lift)' }}
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+        onClick={onClose}
+        role="dialog"
+        aria-modal="true"
       >
+        <div
+          className="safe-bottom max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl"
+          style={{ boxShadow: 'var(--shadow-lift)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-[var(--font-display)] text-lg font-bold">
             <Timer size={18} /> Registar corrida
@@ -193,7 +195,8 @@ export function RunForm({ onClose }: { onClose: () => void }) {
         </div>
 
         <style>{`.rf-in{width:100%;border-radius:0.75rem;border:1px solid var(--line);background:var(--surface-2);padding:0.6rem 0.7rem;font-size:0.95rem;color:var(--ink);outline:none}.rf-in:focus{border-color:var(--accent)}`}</style>
+        </div>
       </div>
-    </div>
+    </Portal>
   )
 }

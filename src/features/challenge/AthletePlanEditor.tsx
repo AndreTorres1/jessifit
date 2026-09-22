@@ -8,6 +8,7 @@ import { sortByWeekday } from '@/lib/format'
 import { shareText } from '@/lib/share'
 import { Card, Pill, Button } from '@/components/ui'
 import { useToast } from '@/components/Toast'
+import { Portal } from '@/components/Portal'
 import { useEscapeKey } from '@/lib/hooks'
 import {
   loadUserState,
@@ -98,6 +99,7 @@ export function AthletePlanEditor({
   }
 
   return (
+    <Portal>
     <div
       className="fixed inset-0 z-[60] overflow-y-auto bg-black/40"
       onClick={onClose}
@@ -220,5 +222,6 @@ export function AthletePlanEditor({
         )}
       </div>
     </div>
+    </Portal>
   )
 }

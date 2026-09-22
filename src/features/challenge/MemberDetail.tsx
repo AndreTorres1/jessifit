@@ -4,6 +4,7 @@ import type { WeekPlan, WeekSummary, Completion } from '@/data/store'
 import type { ExerciseLog, RunLog, Weekday } from '@/types'
 import { WEEKDAY_LABEL, WEEKDAYS } from '@/types'
 import { Card, Pill, Button } from '@/components/ui'
+import { Portal } from '@/components/Portal'
 import { useEscapeKey } from '@/lib/hooks'
 import { WeekGrid } from '../shared/WeekGrid'
 import { WeightProgress } from '../shared/WeightProgress'
@@ -45,6 +46,7 @@ export function MemberDetail({
   )
 
   return (
+    <Portal>
     <div
       className="fixed inset-0 z-50 overflow-y-auto bg-black/40"
       onClick={onClose}
@@ -184,5 +186,6 @@ export function MemberDetail({
         </div>
       </div>
     </div>
+    </Portal>
   )
 }
