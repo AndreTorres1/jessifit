@@ -91,6 +91,32 @@ Sábado - descanso`)
     expect(days[2].rest).toBe(true)
   })
 
+  it('separa dias colados e texto livre (plano real)', () => {
+    const input = `Plano treino
+Segundo-feira -
+    DescansoTerça-feira
+    - Corrida 40´ Z2Quarta feira-  -10´Aquecimento + 2x(10´Corrida(Z3) + 35 airsquats + 15 burpees + 40 lunges + 10´Corrida (Z3))
+Quinta-feira- Treino de pernas + reforço corrida
+Sexta-feira - Alongamentos + core Sábado - Hybrid ou wod ou 50min corrida z2 Domingo-50 min corrida`
+    const { days } = parseWorkouts(input)
+    const byDay = Object.fromEntries(days.map((d) => [d.day, d]))
+
+    expect(days.map((d) => d.day)).toEqual([
+      'segunda',
+      'terca',
+      'quarta',
+      'quinta',
+      'sexta',
+      'sabado',
+      'domingo',
+    ])
+    expect(byDay.segunda.rest).toBe(true)
+    expect(byDay.terca.exercises.map((e) => e.name)).toEqual(['Corrida 40´ Z2'])
+    expect(byDay.quarta.exercises).toHaveLength(2)
+    expect(byDay.sexta.exercises.map((e) => e.name)).toEqual(['Alongamentos', 'core'])
+    expect(byDay.domingo.exercises[0].name).toBe('50 min corrida')
+  })
+
   it('setsRepsLabel formata para a UI', () => {
     const { days } = parseWorkouts(`Segunda\nAgachamento 4x8`)
     expect(setsRepsLabel(days[0].exercises[0])).toBe('4×8')
