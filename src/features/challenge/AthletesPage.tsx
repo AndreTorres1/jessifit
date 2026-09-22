@@ -5,6 +5,7 @@ import type { Athlete } from '@/data/remote'
 import { Card, Eyebrow, Button, EmptyState } from '@/components/ui'
 import { useToast } from '@/components/Toast'
 import { AthletePlanEditor } from './AthletePlanEditor'
+import { AthleteDetail } from './AthleteDetail'
 
 export default function AthletesPage() {
   const { athletes, addAthlete } = useChallenge()
@@ -12,6 +13,7 @@ export default function AthletesPage() {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [viewing, setViewing] = useState<Athlete | null>(null)
   const [editing, setEditing] = useState<Athlete | null>(null)
 
   const add = async (e: FormEvent) => {
@@ -71,7 +73,7 @@ export default function AthletesPage() {
           {athletes.map((a) => (
             <button
               key={a.userId}
-              onClick={() => setEditing(a)}
+              onClick={() => setViewing(a)}
               className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3 text-left transition active:scale-[0.99]"
               style={{ boxShadow: 'var(--shadow)' }}
             >
@@ -81,13 +83,24 @@ export default function AthletesPage() {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{a.name || 'Atleta'}</p>
                 <p className="flex items-center gap-1 text-xs text-muted">
-                  <Dumbbell size={11} /> Editar plano da semana
+                  <Dumbbell size={11} /> Ver progresso e editar plano
                 </p>
               </div>
               <ChevronRight size={16} className="shrink-0 text-muted" />
             </button>
           ))}
         </div>
+      )}
+
+      {viewing && (
+        <AthleteDetail
+          athlete={viewing}
+          onClose={() => setViewing(null)}
+          onEditPlan={() => {
+            setEditing(viewing)
+            setViewing(null)
+          }}
+        />
       )}
 
       {editing && (

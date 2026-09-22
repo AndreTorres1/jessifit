@@ -111,7 +111,10 @@ function TabBar() {
 export default function App() {
   const { loading } = useApp()
   const auth = useAuth()
+  const { athletes } = useChallenge()
   const location = useLocation()
+  // Um treinador (tem atletas) entra pela gestão; caso contrário, pelo treino.
+  const home = athletes.length > 0 ? '/atletas' : '/hoje'
 
   if (!isDemoMode) {
     if (auth.loading) return <Fallback />
@@ -141,7 +144,7 @@ export default function App() {
               <Route path="/grupo" element={<GroupPage />} />
               <Route path="/importar" element={<ImportPage />} />
               <Route path="/biblioteca" element={<LibraryPage />} />
-              <Route path="*" element={<Navigate to="/hoje" replace />} />
+              <Route path="*" element={<Navigate to={home} replace />} />
             </Routes>
           </Suspense>
         </div>

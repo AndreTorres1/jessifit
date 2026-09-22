@@ -9,6 +9,29 @@ export const demoAthletes: Athlete[] = [
   { userId: 'demo-lu', name: 'Lu' },
 ]
 
+/** Estado de treino de exemplo de uma atleta (para o painel do treinador em demo). */
+export function demoAthleteState() {
+  const now = new Date().toISOString()
+  return {
+    plan: demoWeek,
+    completions: {
+      segunda: {
+        status: 'done',
+        difficulty: 4,
+        note: 'Custou as últimas séries de agachamento, mas fiz tudo!',
+        markedAt: now,
+      },
+      quarta: { status: 'done', difficulty: 2, note: 'Dia leve, correu bem.', markedAt: now },
+      sexta: { status: 'failed', failReason: 'Sem tempo, fiquei no trabalho até tarde.', markedAt: now },
+    },
+    logs: [
+      { id: 'la1', key: 'agachamento', name: 'Agachamento', date: '2026-09-07T00:00:00.000Z', weight: '35kg', reps: '8' },
+      { id: 'la2', key: 'agachamento', name: 'Agachamento', date: '2026-09-14T00:00:00.000Z', weight: '40kg', reps: '8' },
+    ],
+    runs: [],
+  }
+}
+
 /** Alguns exercícios da biblioteca já com demonstração, para o modo demo. */
 export const demoExercises: Exercise[] = [
   {
