@@ -371,3 +371,39 @@ export async function setAthletePlan(athleteId: string, plan: unknown): Promise<
   })
   if (error) throw error
 }
+
+/** Pede ao servidor para enviar notificação push a um atleta (novo plano). */
+export async function notifyAthletePlan(athleteId: string): Promise<void> {
+  if (!supabase) return
+  try {
+    await supabase.functions.invoke('notify-plan', { body: { athleteId } })
+  } catch {
+    /* best-effort */
+  }
+}
+
+// ---- Subscrições push ------------------------------------------------------
+
+interface PushSubJSON {
+  endpoint?: string
+  keys?: { p256dh?: string; auth?: string }
+}
+
+export async function savePushSubscription(userId: string, sub: PushSubJSON): Promise<void> {
+  if (!supabase || !sub.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) return
+  const { error } = await supabase.from('push_subscriptions').upsert(
+    {
+      endpoint: sub.endpoint,
+      user_id: userId,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+    },
+    { onConflict: 'endpoint' },
+  )
+  if (error) throw error
+}
+
+export async function removePushSubscription(endpoint: string): Promise<void> {
+  if (!supabase) return
+  await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+}

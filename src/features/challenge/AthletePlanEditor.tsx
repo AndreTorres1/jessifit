@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import { X, Check, Sparkles, Loader2, Coffee } from 'lucide-react'
+import { X, Check, Sparkles, Loader2, Coffee, Share2 } from 'lucide-react'
 import type { Athlete } from '@/data/remote'
 import type { WeekPlan } from '@/data/store'
 import { WEEKDAY_LABEL } from '@/types'
 import { parseWorkouts, setsRepsLabel } from '@/engine/parseWorkouts'
 import { sortByWeekday } from '@/lib/format'
+import { shareText } from '@/lib/share'
 import { Card, Pill, Button } from '@/components/ui'
 import { useToast } from '@/components/Toast'
 import { useEscapeKey } from '@/lib/hooks'
-import { loadUserState, setAthletePlan, type SharedData } from '@/data/remote'
+import {
+  loadUserState,
+  setAthletePlan,
+  notifyAthletePlan,
+  type SharedData,
+} from '@/data/remote'
 
 const PLACEHOLDER = `Segunda - Pernas
 Agachamento 4x8 60kg
@@ -73,6 +79,7 @@ export function AthletePlanEditor({
     }
     try {
       await setAthletePlan(athlete.userId, plan)
+      void notifyAthletePlan(athlete.userId) // notificação push (best-effort)
       show(`Plano enviado para ${athlete.name} 💪`)
       onSaved()
     } catch {
@@ -80,6 +87,14 @@ export function AthletePlanEditor({
     } finally {
       setBusy(false)
     }
+  }
+
+  const whatsapp = async () => {
+    const appUrl = `${window.location.origin}${import.meta.env.BASE_URL}`
+    const msg = `Olá ${athlete.name}! 💪 Já tens o teu plano de treino desta semana na JessiFit.\n\nAbre aqui: ${appUrl}`
+    const r = await shareText(msg)
+    if (r === 'copied') show('Mensagem copiada')
+    else if (r === 'whatsapp') show('A abrir o WhatsApp…')
   }
 
   return (
@@ -195,6 +210,12 @@ export function AthletePlanEditor({
             <Button block disabled={!hasContent || busy} onClick={save} className="mt-4 text-base">
               {busy ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Enviar plano</>}
             </Button>
+            <Button variant="soft" block onClick={whatsapp} className="mt-2">
+              <Share2 size={16} /> Avisar no WhatsApp
+            </Button>
+            <p className="mt-2 text-center text-xs text-muted">
+              Se a {athlete.name} tiver as notificações ativadas, também recebe um aviso automático.
+            </p>
           </>
         )}
       </div>

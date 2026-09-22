@@ -1,16 +1,42 @@
 import { useState } from 'react'
-import { X, RotateCcw } from 'lucide-react'
+import { X, RotateCcw, Bell, BellOff, Loader2, Check } from 'lucide-react'
 import { useApp } from '@/data/store'
+import { useChallenge } from '@/data/challenge'
 import { useToast } from './Toast'
 import { useEscapeKey } from '@/lib/hooks'
 import { isDemoMode } from '@/lib/supabase'
+import { pushState, enablePush, disablePush } from '@/lib/push'
 import { Button } from './ui'
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const { plan, setAthleteName, reset } = useApp()
+  const { myUserId } = useChallenge()
   const { show } = useToast()
   const [name, setName] = useState(plan.athleteName)
+  const [pSt, setPSt] = useState(() => pushState())
+  const [pBusy, setPBusy] = useState(false)
   useEscapeKey(onClose)
+
+  const enableNotifs = async () => {
+    if (!myUserId) return
+    setPBusy(true)
+    const r = await enablePush(myUserId)
+    setPBusy(false)
+    setPSt(pushState())
+    if (r === 'ok') show('Notificações ativadas ✓')
+    else if (r === 'denied') show('Notificações bloqueadas nas definições do telemóvel')
+    else if (r === 'need-install') show('Adiciona a app ao ecrã inicial primeiro')
+    else if (r === 'unsupported') show('Este telemóvel não suporta notificações')
+    else show('Não consegui ativar. Tenta de novo.')
+  }
+
+  const disableNotifs = async () => {
+    setPBusy(true)
+    await disablePush()
+    setPBusy(false)
+    setPSt(pushState())
+    show('Notificações desativadas')
+  }
 
   const save = () => {
     const trimmed = name.trim()
@@ -54,6 +80,46 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         <Button block onClick={save} className="mt-4">
           Guardar
         </Button>
+
+        {!isDemoMode && (
+          <div className="mt-6 border-t border-line pt-4">
+            <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
+              <Bell size={15} /> Notificações
+            </p>
+            {pSt === 'unsupported' ? (
+              <p className="text-xs text-muted">Este telemóvel não suporta notificações.</p>
+            ) : pSt === 'need-install' ? (
+              <p className="text-xs text-muted">
+                No iPhone: toca em <b>Partilhar</b> → <b>Adicionar ao ecrã inicial</b>, abre a app
+                por aí e volta aqui para ativar.
+              </p>
+            ) : pSt === 'granted' ? (
+              <button
+                onClick={disableNotifs}
+                disabled={pBusy}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-sm font-medium text-ink-soft"
+              >
+                {pBusy ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} className="text-accent-deep" />}
+                Notificações ativadas — desativar
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={enableNotifs}
+                  disabled={pBusy}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                  style={{ background: 'linear-gradient(150deg, var(--accent-bright), var(--accent-deep))' }}
+                >
+                  {pBusy ? <Loader2 size={15} className="animate-spin" /> : <BellOff size={15} />}
+                  Ativar notificações de treino
+                </button>
+                <p className="mt-2 text-xs text-muted">
+                  Recebe um aviso quando o teu treinador enviar o plano da semana.
+                </p>
+              </>
+            )}
+          </div>
+        )}
 
         {isDemoMode && (
           <div className="mt-6 border-t border-line pt-4">
