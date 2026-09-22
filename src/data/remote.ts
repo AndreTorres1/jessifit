@@ -363,11 +363,16 @@ export async function addAthleteByEmail(email: string): Promise<AddAthleteResult
   return { ok: true, athlete: { userId: row.athlete_id, name: row.athlete_name } }
 }
 
-export async function setAthletePlan(athleteId: string, plan: unknown): Promise<void> {
+export async function setAthletePlan(
+  athleteId: string,
+  plan: unknown,
+  exercises?: unknown,
+): Promise<void> {
   if (!supabase) return
   const { error } = await supabase.rpc('set_athlete_plan', {
     p_athlete: athleteId,
     p_plan: plan,
+    p_exercises: exercises ?? null,
   })
   if (error) throw error
 }

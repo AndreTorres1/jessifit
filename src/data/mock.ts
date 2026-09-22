@@ -18,6 +18,10 @@ export const demoExercises: Exercise[] = [
     videoUrl: 'https://www.youtube.com/watch?v=aclHkVaku9U',
     imageDataUrl: null,
     note: 'Costas direitas, joelhos alinhados com os pés.',
+    technique: `Pés à largura dos ombros, pontas ligeiramente para fora.
+Desce empurrando a anca para trás, costas direitas.
+Desce até as coxas ficarem paralelas ao chão.
+Sobe com força pelos calcanhares, expirando.`,
   },
   {
     id: 'ex-supino',

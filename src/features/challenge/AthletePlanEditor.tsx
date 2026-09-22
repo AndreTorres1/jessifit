@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { X, Check, Sparkles, Loader2, Coffee, Share2 } from 'lucide-react'
+import { X, Check, Sparkles, Loader2, Coffee, Share2, PlayCircle, ChevronDown } from 'lucide-react'
 import type { Athlete } from '@/data/remote'
 import type { WeekPlan } from '@/data/store'
-import { WEEKDAY_LABEL } from '@/types'
+import { WEEKDAY_LABEL, type Exercise } from '@/types'
 import { parseWorkouts, setsRepsLabel } from '@/engine/parseWorkouts'
 import { sortByWeekday } from '@/lib/format'
+import { matchKey } from '@/lib/text'
 import { shareText } from '@/lib/share'
 import { Card, Pill, Button } from '@/components/ui'
 import { useToast } from '@/components/Toast'
@@ -16,6 +17,13 @@ import {
   notifyAthletePlan,
   type SharedData,
 } from '@/data/remote'
+
+interface Guide {
+  name: string
+  videoUrl: string
+  technique: string
+  note: string
+}
 
 const PLACEHOLDER = `Segunda - Pernas
 Agachamento 4x8 60kg
@@ -46,6 +54,9 @@ export function AthletePlanEditor({
   const [text, setText] = useState('')
   const [coachNote, setCoachNote] = useState('')
   const [busy, setBusy] = useState(false)
+  // Guias de exercício (por chave normalizada do nome).
+  const [guides, setGuides] = useState<Record<string, Guide>>({})
+  const [openGuide, setOpenGuide] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -56,6 +67,17 @@ export function AthletePlanEditor({
         setExisting(plan)
         setText(plan?.rawText ?? '')
         setCoachNote(plan?.coachNote ?? '')
+        const ex = (s?.exercises as Exercise[] | undefined) ?? []
+        const g: Record<string, Guide> = {}
+        for (const e of ex) {
+          g[matchKey(e.name)] = {
+            name: e.name,
+            videoUrl: e.videoUrl ?? '',
+            technique: e.technique ?? '',
+            note: e.note ?? '',
+          }
+        }
+        setGuides(g)
       })
       .catch(() => {})
       .finally(() => active && setLoading(false))
@@ -68,6 +90,24 @@ export function AthletePlanEditor({
   const days = sortByWeekday(parsed.days)
   const hasContent = text.trim().length > 0 && parsed.days.length > 0
 
+  // Nomes de exercício únicos do plano (para associar guias).
+  const exerciseNames = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const d of parsed.days) {
+      for (const e of d.exercises) {
+        const k = matchKey(e.name)
+        if (k && !seen.has(k)) seen.set(k, e.name)
+      }
+    }
+    return [...seen.entries()].map(([key, name]) => ({ key, name }))
+  }, [parsed])
+
+  const setGuide = (key: string, name: string, patch: Partial<Guide>) =>
+    setGuides((g) => {
+      const base: Guide = g[key] ?? { name, videoUrl: '', technique: '', note: '' }
+      return { ...g, [key]: { ...base, name, ...patch } }
+    })
+
   const save = async () => {
     if (!hasContent) return
     setBusy(true)
@@ -78,8 +118,20 @@ export function AthletePlanEditor({
       rawText: text,
       coachNote: coachNote.trim() || undefined,
     }
+    // Guias com conteúdo → biblioteca de exercícios da atleta.
+    const exercises: Exercise[] = Object.values(guides)
+      .filter((g) => g.videoUrl.trim() || g.technique.trim() || g.note.trim())
+      .map((g) => ({
+        id: matchKey(g.name),
+        name: g.name,
+        muscleGroup: null,
+        videoUrl: g.videoUrl.trim() || null,
+        imageDataUrl: null,
+        note: g.note.trim() || null,
+        technique: g.technique.trim() || null,
+      }))
     try {
-      await setAthletePlan(athlete.userId, plan)
+      await setAthletePlan(athlete.userId, plan, exercises)
       void notifyAthletePlan(athlete.userId) // notificação push (best-effort)
       show(`Plano enviado para ${athlete.name} 💪`)
       onSaved()
@@ -201,8 +253,70 @@ export function AthletePlanEditor({
               />
             </label>
 
+            {exerciseNames.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
+                  <PlayCircle size={15} /> Guias de exercício (opcional)
+                </p>
+                <p className="mb-2 text-xs text-muted">
+                  Junta um vídeo do YouTube e a técnica passo-a-passo. A {athlete.name} vê ao tocar
+                  no exercício.
+                </p>
+                <div className="flex flex-col gap-2">
+                  {exerciseNames.map(({ key, name }) => {
+                    const g = guides[key]
+                    const filled = !!(g && (g.videoUrl.trim() || g.technique.trim() || g.note.trim()))
+                    const open = openGuide === key
+                    return (
+                      <div key={key} className="rounded-xl border border-line bg-surface-2">
+                        <button
+                          onClick={() => setOpenGuide(open ? null : key)}
+                          className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium"
+                        >
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ background: filled ? 'var(--accent)' : 'var(--line-strong)' }}
+                          />
+                          <span className="min-w-0 flex-1 truncate">{name}</span>
+                          <ChevronDown
+                            size={16}
+                            className="shrink-0 text-muted transition-transform"
+                            style={{ transform: open ? 'rotate(180deg)' : undefined }}
+                          />
+                        </button>
+                        {open && (
+                          <div className="flex flex-col gap-2 border-t border-line p-3">
+                            <input
+                              value={g?.videoUrl ?? ''}
+                              onChange={(e) => setGuide(key, name, { videoUrl: e.target.value })}
+                              inputMode="url"
+                              placeholder="Link do YouTube"
+                              className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                            />
+                            <textarea
+                              value={g?.technique ?? ''}
+                              onChange={(e) => setGuide(key, name, { technique: e.target.value })}
+                              rows={5}
+                              placeholder={'Técnica — um passo por linha.\nEx.:\nPés à largura dos ombros.\nDesce controlado, costas direitas.\nSobe expirando.'}
+                              className="resize-y rounded-lg border border-line bg-surface px-3 py-2 text-sm leading-relaxed text-ink outline-none focus:border-accent"
+                            />
+                            <input
+                              value={g?.note ?? ''}
+                              onChange={(e) => setGuide(key, name, { note: e.target.value })}
+                              placeholder="Nota curta (opcional)"
+                              className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {hasContent && (
-              <div className="mt-2">
+              <div className="mt-4">
                 <Pill tone="muted">
                   {parsed.days.filter((d) => !d.rest).length} dias de treino
                 </Pill>

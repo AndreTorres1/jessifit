@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlayCircle, ExternalLink, X, Info, Check, Plus } from 'lucide-react'
+import { PlayCircle, ExternalLink, X, Info, Check, Plus, Dumbbell, ListChecks } from 'lucide-react'
 import type { Exercise, ExerciseItem } from '@/types'
 import { setsRepsLabel } from '@/engine/parseWorkouts'
 import { youtubeId, demoSearchUrl } from '@/lib/text'
@@ -10,14 +10,21 @@ import { useEscapeKey } from '@/lib/hooks'
 function DemoSheet({
   name,
   exercise,
+  item,
   onClose,
 }: {
   name: string
   exercise: Exercise | undefined
+  item?: ExerciseItem
   onClose: () => void
 }) {
   const ytId = exercise?.videoUrl ? youtubeId(exercise.videoUrl) : null
   const img = exercise?.imageUrl ?? exercise?.imageDataUrl
+  const sr = item ? setsRepsLabel(item) : ''
+  const steps = (exercise?.technique ?? '')
+    .split(/\r?\n/)
+    .map((s) => s.replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter(Boolean)
   useEscapeKey(onClose)
 
   return (
@@ -49,6 +56,14 @@ function DemoSheet({
           </button>
         </div>
 
+        {(sr || item?.weight) && (
+          <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-accent-wash px-3 py-1.5 text-sm font-semibold text-accent-deep">
+            <Dumbbell size={14} />
+            {[sr && `${sr}`, item?.weight].filter(Boolean).join(' · ')}
+            {item?.note ? ` · ${item.note}` : ''}
+          </p>
+        )}
+
         {ytId ? (
           <div className="aspect-video overflow-hidden rounded-2xl bg-black">
             <iframe
@@ -71,6 +86,24 @@ function DemoSheet({
           <p className="mt-3 flex items-start gap-2 rounded-xl bg-accent-wash px-3 py-2.5 text-sm text-accent-deep">
             <Info size={16} className="mt-0.5 shrink-0" /> {exercise.note}
           </p>
+        )}
+
+        {steps.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+              <ListChecks size={15} /> Técnica
+            </p>
+            <ol className="flex flex-col gap-2">
+              {steps.map((step, i) => (
+                <li key={i} className="flex gap-2.5 text-sm text-ink-soft">
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-wash text-xs font-bold text-accent-deep">
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
         )}
 
         {!ytId && !img && (
@@ -113,7 +146,9 @@ export function ExerciseRow({
   const [w, setW] = useState('')
   const [r, setR] = useState('')
   const exercise = findExercise(item.name)
-  const hasDemo = Boolean(exercise?.videoUrl || exercise?.imageDataUrl)
+  const hasDemo = Boolean(
+    exercise?.videoUrl || exercise?.imageUrl || exercise?.imageDataUrl || exercise?.technique,
+  )
   const sr = setsRepsLabel(item)
 
   const saveLog = () => {
@@ -212,7 +247,12 @@ export function ExerciseRow({
         </div>
       )}
       {open && (
-        <DemoSheet name={item.name} exercise={exercise} onClose={() => setOpen(false)} />
+        <DemoSheet
+          name={item.name}
+          exercise={exercise}
+          item={item}
+          onClose={() => setOpen(false)}
+        />
       )}
     </>
   )

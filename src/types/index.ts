@@ -75,6 +75,8 @@ export interface Exercise {
   /** @deprecated Compatibilidade: fotos antigas guardadas em base64. */
   imageDataUrl: string | null
   note: string | null
+  /** Explicação da técnica, passo a passo (uma linha por passo). */
+  technique?: string | null
 }
 
 /** Registo de peso/reps feito num exercício, para acompanhar progressão. */
